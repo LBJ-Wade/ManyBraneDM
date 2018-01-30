@@ -26,7 +26,7 @@ path = os.getcwd()
 pl.figure()
 ax = pl.gca()
 
-file = np.loadtxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_1.0000e-01.dat')
+file = np.loadtxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_5.0000e-01.dat')
 
 time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
 ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
@@ -45,15 +45,19 @@ pl.plot(a_facts, np.abs(file[:,4]), 'c', lw=1, label='$\delta_b$')
 pl.plot(a_facts, np.abs(file[:,5]), 'm', lw=1, label='$u_b$')
 pl.plot(a_facts, np.abs(file[:,6]), 'k', lw=1, label='$\Theta_0$')
 pl.plot(a_facts, np.abs(file[:,9]), 'y', lw=1, label='$\Theta_1$')
+pl.plot(a_facts, np.abs(file[:,12]), '-g', lw=1, label='$\Theta_2$')
 pl.plot(a_facts, np.abs(file[:,8]), 'maroon', lw=1, label='$N_0$')
 pl.plot(a_facts, np.abs(file[:,11]), 'mediumslateblue', lw=1, label='$N_1$')
 pl.plot(a_facts, np.abs(file[:,14]), 'dodgerblue', lw=1, label='$N_2$')
 pl.plot(a_facts, np.abs(file[:,-1]), 'k-', lw=1, label='$\Psi$')
+#pl.plot(a_facts, np.abs(file[:,15]), 'r', lw=1, label='$\Theta_3$')
+#pl.plot(a_facts, np.abs(file[:,17]), 'r.', lw=1, label='$N_3$')
+
 
 plt.tight_layout()
 plt.legend(loc=1, frameon=True, framealpha=0.5, fontsize=9, ncol=1, fancybox=False)
-
-plt.xlim(xmin=1e-5, xmax=1.)
+plt.ylim(ymin=1e-10, ymax=1e4)
+plt.xlim(xmin=1e-6, xmax=1.)
 ax.set_xscale("log")
 ax.set_yscale("log")
 plt.savefig(path + '/Plots/Fields.pdf')

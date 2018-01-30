@@ -16,7 +16,7 @@ path = os.getcwd()
 
 class Universe(object):
 
-    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=4e-3, stepsize=0.05):
+    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-2, stepsize=0.05, lmax=5):
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
         self.omega_L = omega_L
@@ -28,42 +28,31 @@ class Universe(object):
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.eta_0 = 1.4100e4 #1.4135e+04
 
-
+        self.Lmax = lmax
         self.stepsize = stepsize
         
         self.k = k
         print 'Solving perturbations for k = {:.3e} \n'.format(k)
-        #self.n_index = 0.967
         
         self.accuracy = accuracy
-        self.TotalVars = 23
+        self.TotalVars = 8 + 3*self.Lmax
         self.step = 0
         
-        self.combined_vector = np.zeros(23 ,dtype=object)
+        self.Theta_Dot = np.zeros(self.Lmax+1 ,dtype=object)
+        self.Theta_P_Dot = np.zeros(self.Lmax+1 ,dtype=object)
+        self.Neu_Dot = np.zeros(self.Lmax+1 ,dtype=object)
+        
+        self.combined_vector = np.zeros(self.TotalVars ,dtype=object)
         self.Psi_vec = []
         self.combined_vector[0] = self.Phi_vec = []
         self.combined_vector[1] = self.dot_rhoCDM_vec = []
         self.combined_vector[2] = self.dot_velCDM_vec = []
         self.combined_vector[3] = self.dot_rhoB_vec = []
         self.combined_vector[4] = self.dot_velB_vec = []
-        self.combined_vector[5] = self.dot_Theta_0_vec = []
-        self.combined_vector[6] = self.dot_ThetaP_0_vec = []
-        self.combined_vector[7] = self.dot_N_0_vec = []
-        self.combined_vector[8] = self.dot_Theta_1_vec = []
-        self.combined_vector[9] = self.dot_ThetaP_1_vec = []
-        self.combined_vector[10] = self.dot_N_1_vec = []
-        self.combined_vector[11] = self.dot_Theta_2_vec = []
-        self.combined_vector[12] = self.dot_ThetaP_2_vec = []
-        self.combined_vector[13] = self.dot_N_2_vec = []
-        self.combined_vector[14] = self.dot_Theta_3_vec = []
-        self.combined_vector[15] = self.dot_ThetaP_3_vec = []
-        self.combined_vector[16] = self.dot_N_3_vec = []
-        self.combined_vector[17] = self.dot_Theta_4_vec = []
-        self.combined_vector[18] = self.dot_ThetaP_4_vec = []
-        self.combined_vector[19] = self.dot_N_4_vec = []
-        self.combined_vector[20] = self.dot_Theta_5_vec = []
-        self.combined_vector[21] = self.dot_ThetaP_5_vec = []
-        self.combined_vector[22] = self.dot_N_5_vec = []
+        for i in range(self.Lmax + 1):
+            self.combined_vector[5+i*3] = self.Theta_Dot[i] = []
+            self.combined_vector[6+i*3] = self.Theta_P_Dot[i] = []
+            self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
         self.load_funcs()
 
@@ -93,7 +82,6 @@ class Universe(object):
         ONu = self.omega_nu * self.H_0**2./self.hubble(aval)**2./aval**4.
         rfactor = ONu / (0.75*OM*aval + OR)
 
-
         self.inital_perturb = -1./6.
         for i in range(1):
             self.Psi_vec.append(self.inital_perturb)
@@ -102,34 +90,21 @@ class Universe(object):
             self.dot_velCDM_vec.append(1./2*eta_0*self.k*self.Psi_vec[-1])
             self.dot_rhoB_vec.append(-3./2.*self.Psi_vec[-1])
             self.dot_velB_vec.append(1./2*eta_0*self.k*self.Psi_vec[-1])
-            self.dot_Theta_0_vec.append(-1./2.*self.Psi_vec[-1])
-            self.dot_Theta_1_vec.append(1./6*eta_0*self.k*self.Psi_vec[-1])
-            self.dot_Theta_2_vec.append(0.)
-            self.dot_Theta_3_vec.append(0.)
-            self.dot_Theta_4_vec.append(0.)
-            self.dot_Theta_5_vec.append(0.)
-            self.dot_ThetaP_0_vec.append(0.)
-            self.dot_ThetaP_1_vec.append(0.)
-            self.dot_ThetaP_2_vec.append(0.)
-            self.dot_ThetaP_3_vec.append(0.)
-            self.dot_ThetaP_4_vec.append(0.)
-            self.dot_ThetaP_5_vec.append(0.)
-            self.dot_N_0_vec.append(-1./2.*self.Psi_vec[-1])
-            self.dot_N_1_vec.append(1./6*eta_0*self.k*self.Psi_vec[-1])
-            #self.dot_N_2_vec.append(1./30.*self.k*eta_0*self.Psi_vec[-1])
-            self.dot_N_2_vec.append((self.k/aval)**2/30.*rfactor/self.rhoNeu(aval)*self.Psi_vec[-1])
-            self.dot_N_3_vec.append(0.)
-            self.dot_N_4_vec.append(0.)
-            self.dot_N_5_vec.append(0.)
+            
+            self.Theta_Dot[0].append(-1./2.*self.Psi_vec[-1])
+            self.Theta_Dot[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
+            self.Neu_Dot[0].append(-1./2.*self.Psi_vec[-1])
+            self.Neu_Dot[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
+            self.Neu_Dot[2].append(1./30.*(self.k*eta_0)**2.*self.Psi_vec[-1])
+            
+            
+            for i in range(self.Lmax + 1):
+                if i > 1:
+                    self.Theta_Dot[i].append(0.)
+                self.Theta_P_Dot[i].append(0.)
+                if i > 2:
+                    self.Neu_Dot[i].append(0.)
 
-
-#
-#        self.init_conds = [-(1.+2.*rfactor/5.)*self.Psi_vec[-1], -3./2.*self.Psi_vec[-1],
-#                        1./2*eta_0*self.k*self.Psi_vec[-1], -3./2.*self.Psi_vec[-1],
-#                        1./2*eta_0*self.k*self.Psi_vec[-1], -1./2.*self.Psi_vec[-1],
-#                        1./6*eta_0*self.k*self.Psi_vec[-1], 0., 0., 0., 0., 0., 0.,
-#                        0., 0., 0., 0., -1./2.*self.Psi_vec[-1], 1./6*eta_0*self.k*self.Psi_vec[-1],
-#                        1./30.*self.k*eta_0*self.Psi_vec[-1], 0., 0., 0.]
         self.step = 0
         return
     
@@ -185,8 +160,7 @@ class Universe(object):
 #            exit()
 
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
-            #print test_epsilon, 'EPS'
-            if np.abs(test_epsilon) > self.accuracy:
+            if np.abs(test_epsilon) > self.accuracy and self.step > 10:
                 raise ValueError
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
@@ -195,8 +169,8 @@ class Universe(object):
                 try_count += 1
                 continue
             self.step += 1
-            if (np.abs(test_epsilon) < 1e-7*self.accuracy) and not last_step_up:
-                self.stepsize *= 1.1
+            if (np.abs(test_epsilon) < 1e-4*self.accuracy) and not last_step_up:
+                self.stepsize *= 1.25
                 last_step_up = True
                 print 'Increase Step Size'
             else:
@@ -215,7 +189,7 @@ class Universe(object):
             tau_n = (self.y_vector[-1] - self.y_vector[-2]) / self.y_vector[-2]
 
         delt = (self.y_vector[-1] - self.y_vector[-2])
-        Ident = eye(23)
+        Ident = eye(self.TotalVars)
         Jmat = self.matrix_J(self.y_vector[-1])
         Amat = (1.+2.*tau_n)/(1.+tau_n)*Ident - delt*Jmat
         bvec = self.b_vector(tau_n)
@@ -224,18 +198,12 @@ class Universe(object):
         
         for i in range(self.TotalVars):
             self.combined_vector[i].append(ysol[i][0])
-        
-        #aval = np.exp(self.y_vector[-1])
-#        print -12.*(aval**2./self.k**2.*(self.rhoNeu(aval)*self.combined_vector[13][-1] +
-#                                                       self.rhoG(aval)*self.combined_vector[11][-1])) - self.combined_vector[0][-1]
-
         return
     
     def b_vector(self, tau):
-        bvec = zeros(23,1)
+        bvec = zeros(self.TotalVars,1)
         for i in range(self.TotalVars):
             if self.step == 0:
-                #bvec[i] = self.combined_vector[i][-1]
                 bvec[i] = (1.+tau)*self.combined_vector[i][-1]
             else:
                 bvec[i] = (1.+tau)*self.combined_vector[i][-1] - tau**2./(1.+tau)*self.combined_vector[i][-2]
@@ -252,17 +220,17 @@ class Universe(object):
     def matrix_J(self, z_val):
         a_val = np.exp(z_val)
         eta = self.conform_T(a_val)
-        Jma = zeros(23,23)
+        Jma = zeros(self.TotalVars, self.TotalVars)
         Rfac = (3.*self.rhoB(a_val))/(4.*self.rhoG(a_val))
         RR = (4.*self.rhoG(a_val))/(3.*self.rhoB(a_val))
         HUB = self.hubble(a_val)
         dTa = -self.xe_deta(eta)*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
         CsndB = self.Csnd(eta)
         
-        tflip_TCA = 4e-4
-        tflip_HO = 1e-8
+        tflip_TCA = 1e-4
+        tflip_HO = 1e-5
         
-        PsiTerm = zeros(1,23)
+        PsiTerm = zeros(1,self.TotalVars)
         PsiTerm[0,0] = -1.
         PsiTerm[0,11] = -12.*(a_val/self.k)**2.*self.rhoG(a_val)
         PsiTerm[0,13] = -12.*(a_val/self.k)**2.*self.rhoNeu(a_val)
@@ -338,16 +306,14 @@ class Universe(object):
             Jma[8,:] += -Jma[4,:]/(3.*RR)
         
         # ThetaP 1
-        Jma[9,6] = self.k / (3.*HUB*a_val)
-        Jma[9,12] = -2.*self.k / (3.*HUB*a_val)
-        Jma[9,9] = dTa / (HUB*a_val)
+        Jma[9,6] += self.k / (3.*HUB*a_val)
+        Jma[9,12] += -2.*self.k / (3.*HUB*a_val)
+        Jma[9,9] += dTa / (HUB*a_val)
         # Neu 1
         Jma[10,7] += self.k / (3.*HUB*a_val)
         Jma[10,13] += -2.*self.k/ (3.*HUB*a_val)
         Jma[10,:] += self.k * PsiTerm / (3.*HUB*a_val)
-        
         # Theta 2
-        #if a_val > tflip_HO:
         Jma[11,8] += 2.*self.k / (5.*HUB*a_val)
         Jma[11,14] += -3.*self.k / (5.*HUB*a_val)
         Jma[11,11] += 9.*dTa / (10.*HUB*a_val)
@@ -358,41 +324,34 @@ class Universe(object):
         Jma[12,15] += -3.*self.k / (5.*HUB*a_val)
         Jma[12,12] += 9.*dTa / (10.*HUB*a_val)
         Jma[12,11] += -dTa / (10.*HUB*a_val)
-        Jma[12,6] += -dTa / (10.*HUB*a_val)
+        Jma[12,6] += - dTa / (10.*HUB*a_val)
         # Neu 2
-        Jma[13,10] += 2.*self.k / (5.*HUB*a_val)
-        Jma[13,16] += -3.*self.k / (5.*HUB*a_val)
-        # Theta 3
-        Jma[14,14] += dTa / (HUB*a_val)
-        Jma[14,11] += 3.*self.k / (7.*HUB*a_val)
-        Jma[14,17] += -4.*self.k/ (7.*HUB*a_val)
-        # ThetaP 3
-        Jma[15,15] += dTa / (HUB*a_val)
-        Jma[15,12] += 3.*self.k/ (7.*HUB*a_val)
-        Jma[15,18] += -4.*self.k/ (7.*HUB*a_val)
-        # Neu 3
-        Jma[16,13] += 3.*self.k/ (7.*HUB*a_val)
-        Jma[16,19] += -4*self.k/ (7.*HUB*a_val)
-        # Theta 4
-        Jma[17,17] += dTa / (HUB*a_val)
-        Jma[17,14] += 4.*self.k / (9.*HUB*a_val)
-        Jma[17,20] += -5.*self.k / (9.*HUB*a_val)
-        # ThetaP 4
-        Jma[18,18] += dTa / (HUB*a_val)
-        Jma[18,15] += 4.*self.k / (9.*HUB*a_val)
-        Jma[18,21] += -5.*self.k / (9.*HUB*a_val)
-        # Neu 4
-        Jma[19,16] += 4.*self.k / (9.*HUB*a_val)
-        Jma[19,22] += -5.*self.k / (9.*HUB*a_val)
-        # Theta 5
-        Jma[20, 17] += self.k / (HUB*a_val)
-        Jma[20, 20] += (-6./eta + dTa) / (HUB*a_val)
-        # ThetaP 5
-        Jma[21, 18] += self.k / (HUB*a_val)
-        Jma[21, 21] += (-6./eta + dTa) / (HUB*a_val)
-        # Neu 5
-        Jma[22, 19] += self.k / (HUB*a_val)
-        Jma[22, 22] += -6./(eta*HUB*a_val)
+        Jma[13,10] += 2.*self.k/ (5.*HUB*a_val)
+        Jma[13,16] += -3.*self.k/ (5.*HUB*a_val)
+        
+        for i in range(14, 14 + self.Lmax - 3):
+            elV = i - 14 + 3
+            inx = i - 14
+            Jma[14+3*inx,14+3*inx] += dTa / (HUB*a_val)
+            Jma[14+3*inx,14+3*inx-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[14+3*inx,14+3*inx+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+
+            Jma[14+3*inx+1,14+3*inx+1] += dTa / (HUB*a_val)
+            Jma[14+3*inx+1,14+3*inx+1-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[14+3*inx+1,14+3*inx+1+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+
+            Jma[14+3*inx+2,14+3*inx+2-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[14+3*inx+2,14+3*inx+2+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+
+        # Theta Lmax
+        Jma[-3, -3-3] += self.k / (HUB*a_val)
+        Jma[-3, -3] += (-(self.Lmax+1.)/eta + dTa) / (HUB*a_val)
+        # Theta Lmax
+        Jma[-2, -2-3] += self.k / (HUB*a_val)
+        Jma[-2, -2] += (-(self.Lmax+1.)/eta + dTa) / (HUB*a_val)
+        # Theta Lmax
+        Jma[-1, -1-3] += self.k / (HUB*a_val)
+        Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
         return Jma
 
     def Csnd(self, eta):

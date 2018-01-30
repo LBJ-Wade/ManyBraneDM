@@ -9,8 +9,9 @@ path = os.getcwd()
 
 class CMB(object):
 
-    def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=1e-5, kmax=10., knum=6,
-                 compute_LP=False, compute_TH=False):
+    def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=1e-3, kmax=0.5, knum=6,
+                 lmax=501, lvals=20, compute_LP=False, compute_TH=False,
+                 Ftag='StandardUniverse'):
         self.OM_b = OM_b
         self.OM_c = OM_c
         self.OM_g = OM_g
@@ -19,14 +20,20 @@ class CMB(object):
         self.kmin = kmin
         self.kmax = kmax
         self.knum = knum
+        self.Ftag = Ftag
+        self.lmax = lmax
+        self.lvals = lvals
         
         self.eta0 = 1.4100e4
         
         if compute_LP:
             self.kspace_linear_pert()
+        
         if compute_TH:
             self.loadfiles()
-            self.theta_integration(1e-1)
+            kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+            for k in kgrid:
+                self.theta_integration(k)
         return
     
     def loadfiles(self):
@@ -63,7 +70,12 @@ class CMB(object):
         return
 
     def theta_integration(self, k):
-        fields = np.loadtxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_{:.4e}.dat'.format(k))
+        ell_tab = range(1, self.lmax, (self.lmax - 1)/self.lvals)
+        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
+        if not os.path.isfile(ThetaFile):
+            np.savetxt(ThetaFile, ell_tab)
+        
+        fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
         psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
         vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
@@ -77,23 +89,26 @@ class CMB(object):
             h2 = fields[i+2,0] - fields[i+1,0]
             h1 = fields[i+1,0] - fields[i,0]
             der2PI[i] = 2.*(h2*pitermL[i] -(h1+h2)*pitermL[i+1] + h1*pitermL[i+2])/(h1*h2*(h1+h2))
-        
         PI_DD = interp1d(np.log10(fields[1:-1,0]), der2PI, kind='cubic', bounds_error=False, fill_value=0.)
-        ell = 10
         
-        term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
-                                3/(4.*k**2.)*PI_DD(np.log10(x)))* \
-                                spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=100)
+        thetaVals = np.zeros(len(ell_tab))
+        for i,ell in enumerate(ell_tab):
+            term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
+                                    3/(4.*k**2.)*PI_DD(np.log10(x)))* \
+                                    spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+            
+            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(ell-1, k*(self.eta0 - x)) -
+                                                                      (ell+1)*spherical_jn(ell, k*(self.eta0 - x))/(k*(self.eta0 - x))),
+                                                                      self.eta_start, self.eta0, limit=200)
+            
+            term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
+                                   spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+            thetaVals[i] =  (term1[0] + term2[0] + term3[0])
         
-        term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(ell-1, k*(self.eta0 - x)) -
-                                                                  (ell+1)*spherical_jn(ell, k*(self.eta0 - x))/(k*(self.eta0 - x))),
-                                                                  self.eta_start, self.eta0, limit=100)
-        
-        term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
-                               spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=100)
-        print term1, term2, term3
-        
-        return (term1[0] + term2[0] + term3[0])
+        tabhold = np.loadtxt(ThetaFile)
+        tabhold = np.vstack((tabhold, thetaVals))
+        np.savetxt(ThetaFile, tabhold)
+        return
 
 
 
