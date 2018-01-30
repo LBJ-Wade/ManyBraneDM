@@ -9,8 +9,8 @@ path = os.getcwd()
 
 class CMB(object):
 
-    def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=1e-3, kmax=0.5, knum=6,
-                 lmax=501, lvals=20, compute_LP=False, compute_TH=False,
+    def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
+                 lmax=2500, lvals=250, compute_LP=False, compute_TH=False,
                  Ftag='StandardUniverse'):
         self.OM_b = OM_b
         self.OM_c = OM_c
@@ -70,7 +70,7 @@ class CMB(object):
         return
 
     def theta_integration(self, k):
-        ell_tab = range(1, self.lmax, (self.lmax - 1)/self.lvals)
+        ell_tab = range(10, self.lmax, (self.lmax - 1)/self.lvals)
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         if not os.path.isfile(ThetaFile):
             np.savetxt(ThetaFile, ell_tab)
