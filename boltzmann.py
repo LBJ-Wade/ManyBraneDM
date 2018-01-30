@@ -16,7 +16,7 @@ path = os.getcwd()
 
 class Universe(object):
 
-    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-2, stepsize=0.05, lmax=5):
+    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3, stepsize=0.01, lmax=5):
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
         self.omega_L = omega_L
@@ -161,7 +161,7 @@ class Universe(object):
 
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
             if np.abs(test_epsilon) > self.accuracy and self.step > 10:
-                raise ValueError
+                #raise ValueError
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
