@@ -161,7 +161,7 @@ class Universe(object):
 
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
             if np.abs(test_epsilon) > self.accuracy and self.step > 10:
-                #raise ValueError
+                raise ValueError
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
