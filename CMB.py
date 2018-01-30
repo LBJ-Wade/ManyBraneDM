@@ -11,6 +11,7 @@ class CMB(object):
 
     def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
                  lmax=2500, lvals=250, compute_LP=False, compute_TH=False,
+                 compute_CMB=False,
                  Ftag='StandardUniverse'):
         self.OM_b = OM_b
         self.OM_c = OM_c
@@ -25,6 +26,7 @@ class CMB(object):
         self.lvals = lvals
         
         self.eta0 = 1.4100e4
+        self.init_pert = -1/6.
         
         if compute_LP:
             self.kspace_linear_pert()
@@ -110,7 +112,21 @@ class CMB(object):
         np.savetxt(ThetaFile, tabhold)
         return
 
+    def computeCMB(self):
+        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
+        thetaTab = np.loadtxt(ThetaFile)
+        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        ell_tab = range(10, self.lmax, (self.lmax - 1)/self.lvals)
+        CL_table = np.zeros((len(ell_tab), 2))
 
+        for i,ell in enumerate(ell_tab):
+            theta_L = interp1d(kgrid, thetaTab[1:,i], kind='linear', bounds_error=False, fill_value=0.)
+            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
+                      0., self.kmax, limit=200)
+            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cl[0]]
+
+        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
+        return
 
     def exp_opt_depth(self, eta):
         aval = 10.**self.ct_to_scale(np.log10(eta))
