@@ -11,7 +11,7 @@ class CMB(object):
 
     def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
                  lmax=2500, lvals=250, compute_LP=False, compute_TH=False,
-                 compute_CMB=False,
+                 compute_CMB=False, compute_MPS=False,
                  Ftag='StandardUniverse'):
         self.OM_b = OM_b
         self.OM_c = OM_c
@@ -24,18 +24,26 @@ class CMB(object):
         self.Ftag = Ftag
         self.lmax = lmax
         self.lvals = lvals
+        self.H_0 = 2.2348e-4 # units Mpc^-1
         
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
         if compute_LP:
+            print 'Computing Perturbation Fields...\n'
             self.kspace_linear_pert()
-        
         if compute_TH:
+            print 'Computing Theta Files...\n'
             self.loadfiles()
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             for k in kgrid:
                 self.theta_integration(k)
+        if computeCMB:
+            print 'Computing CMB...\n'
+            self.computeCMB()
+        if compute_MPS:
+            print 'Computing Matter Power Spectrum...\n'
+            self.MatterPower()
         return
     
     def loadfiles(self):
@@ -118,15 +126,24 @@ class CMB(object):
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         ell_tab = range(10, self.lmax, (self.lmax - 1)/self.lvals)
         CL_table = np.zeros((len(ell_tab), 2))
+        GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
         for i,ell in enumerate(ell_tab):
             theta_L = interp1d(kgrid, thetaTab[1:,i], kind='linear', bounds_error=False, fill_value=0.)
             cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
                       0., self.kmax, limit=200)
-            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cl[0]]
+            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cl[0] * GF]
 
         np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
         return
+
+    def growthFactor(self, a):
+        # D(a)
+        Uni = Single_FRW(self.OM_b, self.OM_c, self.OM_L, self.OM_g, self.H_0)
+        prefac = 5.*(self.OM_b + self.OM_c)/2. *(Uni.Hubble(a) / self.H_0) * self.H_0**3.
+    
+        integ_pt = quad(lambda x: 1./(x*Uni.Hubble(x)**3.), 0., a)[0]
+        return prefac * integ_pt
 
     def exp_opt_depth(self, eta):
         aval = 10.**self.ct_to_scale(np.log10(eta))
@@ -136,5 +153,25 @@ class CMB(object):
         ln10aval = self.ct_to_scale(np.log10(eta))
         return 10.**self.Vfunc(ln10aval)
 
+    def MatterPower(self):
+        # T(k) = \Phi(k, a=1) / \Phi(k = Large, a= 1)
+        # P(k,a=1) = 2 pi^2 * \delta_H^2 * k / H_0^4 * T(k)^2
+        Tktab = self.TransferFuncs()
+        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        PS = np.zeros_like(kgrid)
+        for i,k in enumerate(kgrid):
+            PS[i] = k*Tktab[i]**2.
+        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((kgrid, PS)))
+        return
+
+    def TransferFuncs(self):
+        Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(self.kmin))
+        LargeScaleVal = Minfields[-1, 1]
+        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        Tktab = np.zeros_like(kgrid)
+        for i,k in enumerate(kgrid):
+            field =  np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
+            Tktab[i] = field[-1,1] / LargeScaleVal
+        return Tktab
 
 
