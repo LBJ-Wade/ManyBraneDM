@@ -38,7 +38,7 @@ class CMB(object):
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             for k in kgrid:
                 self.theta_integration(k)
-        if computeCMB:
+        if compute_CMB:
             print 'Computing CMB...\n'
             self.computeCMB()
         if compute_MPS:
@@ -153,7 +153,7 @@ class CMB(object):
         ln10aval = self.ct_to_scale(np.log10(eta))
         return 10.**self.Vfunc(ln10aval)
 
-    def MatterPower(self):
+    def MatterPower(self, total_kmin=1e-3):
         # T(k) = \Phi(k, a=1) / \Phi(k = Large, a= 1)
         # P(k,a=1) = 2 pi^2 * \delta_H^2 * k / H_0^4 * T(k)^2
         Tktab = self.TransferFuncs()
@@ -161,7 +161,13 @@ class CMB(object):
         PS = np.zeros_like(kgrid)
         for i,k in enumerate(kgrid):
             PS[i] = k*Tktab[i]**2.
-        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((kgrid, PS)))
+        kgrid2 = np.logspace(np.log10(total_kmin), np.log10(self.kmin), 30)[1:]
+        PS2 = np.zeros_like(kgrid2)
+        for i,k in enumerate(kgrid2):
+            PS2[i] = k*Tktab[0]**2.
+        KtotalARR = np.concatenate((kgrid2, kgrid))
+        PStotalARR = np.concatenate((PS2, PS))
+        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((KtotalARR, PStotalARR)))
         return
 
     def TransferFuncs(self):
