@@ -65,6 +65,9 @@ class CMB(object):
     def kspace_linear_pert(self):
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         for k in kgrid:
+            fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
+            if os.path.isfile(fileName):
+                continue
             stepsize = 0.1
             success = False
             while not success:
