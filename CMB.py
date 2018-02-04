@@ -132,9 +132,9 @@ class CMB(object):
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
         for i,ell in enumerate(ell_tab):
-            theta_L = interp1d(kgrid, thetaTab[1:,i], kind='linear', bounds_error=False, fill_value=0.)
+            theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
             cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
-                      0., self.kmax, limit=200)
+                      0., self.kmax, limit=500)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cl[0] * GF]
 
         np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
