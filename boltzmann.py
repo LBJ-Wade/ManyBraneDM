@@ -1,11 +1,11 @@
 import numpy as np
 import os
 import sympy
-from sympy import *
-from sympy.matrices import *
+#from sympy import *
+#from sympy.matrices import *
 import scipy
 import scipy.linalg
-from scipy.linalg import lu_solve, lu_factor
+from scipy.linalg import lu_solve, lu_factor, inv
 from scipy.integrate import ode, quad
 from scipy.interpolate import interp1d
 from constants import *
@@ -16,7 +16,7 @@ path = os.getcwd()
 
 class Universe(object):
 
-    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3, stepsize=0.01, lmax=5):
+    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3, stepsize=0.01, lmax=5, testing=True):
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
         self.omega_L = omega_L
@@ -55,6 +55,17 @@ class Universe(object):
             self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
         self.load_funcs()
+        
+        self.testing = testing
+        if self.testing:
+            self.aLIST = []
+            self.etaLIST = []
+            self.csLIST = []
+            self.hubLIST = []
+            self.dtauLIST = []
+            self.xeLIST = []
+        
+        return
 
     def load_funcs(self):
         time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
@@ -66,14 +77,13 @@ class Universe(object):
         self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
         self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
-        xe_load = np.log10(np.loadtxt(path + '/precomputed/Xe_evol.dat'))
-        self.Xe = interp1d(xe_load[:,0], xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate') # func \eta
+        #xe_load = np.loadtxt(path + '/precomputed/Xe_evol.dat')
+        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
+        self.Xe = interp1d(np.log10(xe_load[:,0]), xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
-        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), np.log10(cs_load[:,1]), kind='linear',
-                             bounds_error=False, fill_value='extrapolate')
+        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
-        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear',
-                                  bounds_error=False, fill_value='extrapolate')
+        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         return
 
     def init_conds(self, eta_0, aval):
@@ -111,6 +121,7 @@ class Universe(object):
     
     def solve_system(self):
         eta_st = np.min([1e-3/self.k, 1e-1/0.7]) # Initial conformal time in Mpc
+        
         y_st = np.log(self.scale_a(eta_st))
         eta_st = self.conform_T(np.exp(y_st))
         
@@ -149,7 +160,7 @@ class Universe(object):
                 continue
             self.step_solver()
             
-#            r = ode(self.ode_system).set_integrator('dopri5')
+#            r = ode(self.ode_system).set_integrator('vode')
 #            r.set_initial_value(self.init_conds, self.y_vector[0])
 #            t1 = 0.
 #            dt = 1e-5
@@ -189,19 +200,22 @@ class Universe(object):
             tau_n = (self.y_vector[-1] - self.y_vector[-2]) / self.y_vector[-2]
 
         delt = (self.y_vector[-1] - self.y_vector[-2])
-        Ident = eye(self.TotalVars)
+        #Ident = eye(self.TotalVars)
+        Ident = np.eye(self.TotalVars)
         Jmat = self.matrix_J(self.y_vector[-1])
         Amat = (1.+2.*tau_n)/(1.+tau_n)*Ident - delt*Jmat
         bvec = self.b_vector(tau_n)
-        LUpiv = lu_factor(Amat)
-        ysol = lu_solve(LUpiv, bvec)
+        #LUpiv = lu_factor(Amat)
+        #ysol = lu_solve(LUpiv, bvec)
+        ysol = np.matmul(inv(Amat),bvec)
         
         for i in range(self.TotalVars):
-            self.combined_vector[i].append(ysol[i][0])
+            self.combined_vector[i].append(ysol[i])
         return
     
     def b_vector(self, tau):
-        bvec = zeros(self.TotalVars,1)
+        #bvec = zeros(self.TotalVars,1)
+        bvec = np.zeros(self.TotalVars)
         for i in range(self.TotalVars):
             if self.step == 0:
                 bvec[i] = (1.+tau)*self.combined_vector[i][-1]
@@ -220,20 +234,29 @@ class Universe(object):
     def matrix_J(self, z_val):
         a_val = np.exp(z_val)
         eta = self.conform_T(a_val)
-        Jma = zeros(self.TotalVars, self.TotalVars)
+        #Jma = zeros(self.TotalVars, self.TotalVars)
+        Jma = np.zeros((self.TotalVars, self.TotalVars))
         Rfac = (3.*self.rhoB(a_val))/(4.*self.rhoG(a_val))
         RR = (4.*self.rhoG(a_val))/(3.*self.rhoB(a_val))
         HUB = self.hubble(a_val)
-        dTa = -self.xe_deta(eta)*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
-        CsndB = self.Csnd(eta)
+        dTa = -self.xe_deta(a_val)*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
+        CsndB = self.Csnd(a_val)
+        
+        if self.testing:
+            self.aLIST.append(a_val)
+            self.etaLIST.append(eta)
+            self.hubLIST.append(HUB)
+            self.csLIST.append(CsndB)
+            self.dtauLIST.append(dTa)
+            self.xeLIST.append(self.xe_deta(a_val))
         
         tflip_TCA = 1e-4
         tflip_HO = 1e-5
         
-        PsiTerm = zeros(1,self.TotalVars)
-        PsiTerm[0,0] = -1.
-        PsiTerm[0,11] = -12.*(a_val/self.k)**2.*self.rhoG(a_val)
-        PsiTerm[0,13] = -12.*(a_val/self.k)**2.*self.rhoNeu(a_val)
+        PsiTerm = np.zeros(self.TotalVars)
+        PsiTerm[0] = -1.
+        PsiTerm[11] = -12.*(a_val/self.k)**2.*self.rhoG(a_val)
+        PsiTerm[13] = -12.*(a_val/self.k)**2.*self.rhoNeu(a_val)
         
         # Phi Time derivative
         Jma[0,:] += PsiTerm
@@ -242,7 +265,6 @@ class Universe(object):
         Jma[0,3] += 1./(HUB**2.*2.)*self.rhoB(a_val)
         Jma[0,5] += 2./(HUB**2.)*self.rhoG(a_val)
         Jma[0,7] += 2./(HUB**2.)*self.rhoNeu(a_val)
-
 
         # CDM density
         Jma[1,2] += -self.k/(HUB*a_val)
@@ -290,13 +312,14 @@ class Universe(object):
         Jma[7,10] += -self.k / (HUB*a_val)
         Jma[7,:] += -Jma[0,:]
 
+        print a_val, eta, dTa, CsndB, HUB
         # Theta 1
         if a_val > tflip_TCA:
             Jma[8,5] += self.k/ (3.*HUB*a_val)
             Jma[8,8] += dTa / (HUB*a_val)
             Jma[8,4] += -dTa / (3.*HUB*a_val)
-            Jma[8,11] += -2.*self.k/(3.*HUB*a_val)
-            Jma[8,:] += self.k * PsiTerm / (3.*HUB*a_val)
+            Jma[8,11] += -2.*self.k / (3.*HUB*a_val)
+            Jma[8,:] += self.k*PsiTerm / (3.*HUB*a_val)
         else:
             Jma[8,4] += -1./(3.*RR)
             Jma[8,3] += CsndB*self.k/(HUB*a_val*RR*3.)
@@ -354,8 +377,8 @@ class Universe(object):
         Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
         return Jma
 
-    def Csnd(self, eta):
-        return 10.**self.Csnd_interp(np.log10(eta))
+    def Csnd(self, a):
+        return self.Csnd_interp(np.log10(a))/a
 
     def dtau_deta(self, a):
         if a > self.dtau_load[0,0]:
@@ -375,8 +398,8 @@ class Universe(object):
     def hubble(self, a):
         return self.H_0*np.sqrt(self.omega_R*a**-4+self.omega_M*a**-3.+self.omega_L)
 
-    def xe_deta(self, eta):
-        return 10.**self.Xe(np.log10(eta))
+    def xe_deta(self, a):
+        return self.Xe(np.log10(a))
 
     def rhoCDM(self, a):
         return self.omega_cdm * self.H_0**2. * a**-3. 
@@ -414,5 +437,9 @@ class Universe(object):
         for i in range(self.TotalVars):
             sve_tab[:,i+1] = self.combined_vector[i]
         np.savetxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_{:.4e}.dat'.format(self.k), sve_tab, fmt='%.8e', delimiter='    ')
+        
+        if self.testing:
+            np.savetxt(path+'/OutputFiles/StandardUniverse_Background.dat',
+                        np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST, self.dtauLIST)))
         return
 
