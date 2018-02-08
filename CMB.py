@@ -11,8 +11,8 @@ class CMB(object):
 
     def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
                  lmax=2500, lvals=250, compute_LP=False, compute_TH=False,
-                 compute_CMB=False, compute_MPS=False,
-                 Ftag='StandardUniverse'):
+                 compute_CMB=False, compute_MPS=False, kVAL=None,
+                 Ftag='StandardUniverse', lmax_Pert=5):
         self.OM_b = OM_b
         self.OM_c = OM_c
         self.OM_g = OM_g
@@ -25,6 +25,9 @@ class CMB(object):
         self.lmax = lmax
         self.lvals = lvals
         self.H_0 = 2.2348e-4 # units Mpc^-1
+        self.lmax_Pert = lmax_Pert
+        
+        self.kVAL = kVAL
         
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
@@ -36,8 +39,11 @@ class CMB(object):
             print 'Computing Theta Files...\n'
             self.loadfiles()
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-            for k in kgrid:
-                self.theta_integration(k)
+            if self.kVAL is not None:
+                self.theta_integration(self.kVAL)
+            else:
+                for k in kgrid:
+                    self.theta_integration(k)
         if compute_CMB:
             print 'Computing CMB...\n'
             self.computeCMB()
@@ -64,6 +70,8 @@ class CMB(object):
 
     def kspace_linear_pert(self):
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        if self.kVAL is not None:
+            kgrid = [self.kVAL]
         for k in kgrid:
             fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
@@ -74,7 +82,7 @@ class CMB(object):
                 print 'Working on k = {:.3e}, step size = {:.3e}'.format(k, stepsize)
                 try:
                     SingleUni = Universe(k, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu,
-                                         stepsize=stepsize).solve_system()
+                                         stepsize=stepsize, accuracy=1e-3, lmax=self.lmax_Pert).solve_system()
                     success = True
                 except ValueError:
                     stepsize /= 2.
@@ -83,10 +91,16 @@ class CMB(object):
         return
 
     def theta_integration(self, k):
-        ell_tab = range(10, self.lmax, (self.lmax - 1)/self.lvals)
+        if self.kVAL is not None:
+            kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+            index = np.where(kgrid == self.kVAL)[0][0] + 1
+
+        ell_tab = np.linspace(10, self.lmax, self.lvals, dtype=int)
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         if not os.path.isfile(ThetaFile):
-            np.savetxt(ThetaFile, ell_tab)
+            ThetaTabTot = np.zeros((self.knum, self.lvals))
+            print np.shape(ell_tab), np.shape(ThetaTabTot)
+            np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
@@ -106,6 +120,7 @@ class CMB(object):
         
         thetaVals = np.zeros(len(ell_tab))
         for i,ell in enumerate(ell_tab):
+            
             term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
                                     3/(4.*k**2.)*PI_DD(np.log10(x)))* \
                                     spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
@@ -118,8 +133,12 @@ class CMB(object):
                                    spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
             thetaVals[i] =  (term1[0] + term2[0] + term3[0])
         
+        
         tabhold = np.loadtxt(ThetaFile)
-        tabhold = np.vstack((tabhold, thetaVals))
+        if self.kVAL is not None:
+            tabhold[index] = thetaVals
+        else:
+            tabhold = np.vstack((tabhold, thetaVals))
         np.savetxt(ThetaFile, tabhold)
         return
 

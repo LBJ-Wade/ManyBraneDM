@@ -16,7 +16,8 @@ path = os.getcwd()
 
 class Universe(object):
 
-    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3, stepsize=0.01, lmax=5, testing=True):
+    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3,
+                 stepsize=0.01, lmax=5, testing=False):
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
         self.omega_L = omega_L
@@ -312,7 +313,6 @@ class Universe(object):
         Jma[7,10] += -self.k / (HUB*a_val)
         Jma[7,:] += -Jma[0,:]
 
-        print a_val, eta, dTa, CsndB, HUB
         # Theta 1
         if a_val > tflip_TCA:
             Jma[8,5] += self.k/ (3.*HUB*a_val)
