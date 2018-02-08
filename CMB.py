@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from boltzmann import *
+from frw_metric import *
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.special import spherical_jn
@@ -146,11 +147,12 @@ class CMB(object):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         thetaTab = np.loadtxt(ThetaFile)
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        ell_tab = range(10, self.lmax, (self.lmax - 1)/self.lvals)
+        ell_tab = np.linspace(10, self.lmax, self.lvals)
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
         for i,ell in enumerate(ell_tab):
+            
             theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
             cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
                       self.kmin, self.kmax, limit=500)

@@ -6,8 +6,8 @@ from multiprocessing import Pool
 Ftag = 'StandardUniverse'
 lmax_Pert = 5
 
-compute_LP = True
-compute_TH = True
+compute_LP = False
+compute_TH = False
 compute_CMB = True
 compute_MPS = True
 
@@ -36,11 +36,6 @@ if compute_LP or compute_TH:
     pool = Pool(processes=None)
     pool.map(CMB_wrap, kgrid)
     
-#    for k in kgrid:
-#        CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
-#            lvals=lvals, compute_LP=True, compute_TH=True,
-#            compute_CMB=False, compute_MPS=False, kVAL=k,
-#            Ftag=Ftag, lmax_Pert=lmax_Pert)
 
 if compute_CMB:
     CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
