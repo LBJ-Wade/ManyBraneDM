@@ -45,9 +45,9 @@ if compute_LP or compute_TH:
 if compute_CMB:
     CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
         lvals=lvals, compute_LP=False, compute_TH=False, compute_CMB=True,
-        compute_MPS=False, kVAL=k, Ftag=Ftag, lmax_Pert=lmax_Pert)
+        compute_MPS=False, Ftag=Ftag, lmax_Pert=lmax_Pert)
 if compute_MPS:
     CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
         lvals=lvals, compute_LP=False, compute_TH=False, compute_CMB=False,
-        compute_MPS=True, kVAL=k, Ftag=Ftag, lmax_Pert=lmax_Pert)
+        compute_MPS=True, Ftag=Ftag, lmax_Pert=lmax_Pert)
 
