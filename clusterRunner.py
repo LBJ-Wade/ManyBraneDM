@@ -14,7 +14,7 @@ kmin = 1e-3
 kmax = 0.5
 knum = 200
 lmax = 2500
-lval = 250
+lvals = 250
 
 OM_b = 0.0484
 OM_c = 0.258 
