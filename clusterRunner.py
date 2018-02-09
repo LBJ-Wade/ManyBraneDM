@@ -13,9 +13,9 @@ compute_MPS = True
 
 kmin = 1e-3
 kmax = 0.5
-knum = 200
+knum = 10
 lmax = 2500
-lvals = 250
+lvals = 5
 
 OM_b = 0.0484
 OM_c = 0.258 

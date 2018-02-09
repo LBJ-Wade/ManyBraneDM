@@ -655,8 +655,11 @@ class ManyBrane_Universe(object):
         Rfac_D = (3.*self.omega_b[1]*a_val)/(4.*self.omega_g[1])
         RR_D = (4.*self.omega_g[1])/(3.*self.omega_b[1]*a_val)
         
-        
-        dTa = -self.xe_deta(a_val)*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
+        Yp = 0.245
+        n_H = 2.503e-7
+        dTa = -self.xe_deta(a_val)*(1.-Yp)*n_H*6.65e-29*1e4/a_val**2./3.24078e-25
+        # Note: If you want to change \omega_b / \omega_g you need to modify this function
+        dTa_D = -self.xe_deta(a_val)*(1.-Yp)*n_H*6.65e-29*1e4/a_val**2./3.24078e-25
         CsndB = self.Csnd(a_val)
         
         if self.testing:
