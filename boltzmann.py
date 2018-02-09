@@ -413,7 +413,7 @@ class Universe(object):
 
 class ManyBrane_Universe(object):
     
-    def __init__(self, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3,
+    def __init__(self, Nbrane, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3,
                  stepsize=0.01, lmax=5, testing=False):
         self.omega_b_T = np.sum(omega_b)
         self.omega_cdm_T = np.sum(omega_cdm)
@@ -427,6 +427,7 @@ class ManyBrane_Universe(object):
         self.omega_cdm = omega_cdm
         self.omega_g = omega_g
         self.omega_nu = omega_nu
+        self.Nbrane = Nbrane
         
         print self.omega_M_T, self.omega_R_T, self.omega_L_T
         exit()
@@ -681,8 +682,8 @@ class ManyBrane_Universe(object):
         PsiTerm[0] = -1.
         PsiTerm[11] = -12.*(a_val/self.k)**2.*self.omega_g[0]*self.H_0**2./a_val**4.
         PsiTerm[13] = -12.*(a_val/self.k)**2.*self.omega_nu[0]*self.H_0**2./a_val**4.
-        PsiTerm[self.TotalVars + 11 - 1] = -12.*(a_val/self.k)**2.*self.omega_g[1]*self.H_0**2./a_val**4.
-        PsiTerm[self.TotalVars + 13 - 1] = -12.*(a_val/self.k)**2.*self.omega_nu[1]*self.H_0**2./a_val**4.
+        PsiTerm[self.TotalVars + 11 - 1] = -12.*(a_val/self.k)**2.*self.omega_g[1]*self.H_0**2./a_val**4. * self.Nbrane
+        PsiTerm[self.TotalVars + 13 - 1] = -12.*(a_val/self.k)**2.*self.omega_nu[1]*self.H_0**2./a_val**4. * self.Nbrane
         
         # Phi Time derivative
         Jma[0,:] += PsiTerm
@@ -693,10 +694,10 @@ class ManyBrane_Universe(object):
         Jma[0,5] += 2./(HUB**2.)*self.rhoG_Indiv(a_val, uni=0)
         Jma[0,7] += 2./(HUB**2.)*self.rhoNeu_Indiv(a_val, uni=0)
         
-        Jma[0, self.TotalVars] += 1./(HUB**2.*2.)*self.rhoCDM_Indiv(a_val, uni=1)
-        Jma[0, self.TotalVars + 2] += 1./(HUB**2.*2.)*self.rhoB_Indiv(a_val, uni=1)
-        Jma[0, self.TotalVars + 4] += 2./(HUB**2.)*self.rhoG_Indiv(a_val, uni=1)
-        Jma[0, self.TotalVars + 6] += 2./(HUB**2.)*self.rhoNeu_Indiv(a_val, uni=1)
+        Jma[0, self.TotalVars] += 1./(HUB**2.*2.)*self.rhoCDM_Indiv(a_val, uni=1) * self.Nbrane
+        Jma[0, self.TotalVars + 2] += 1./(HUB**2.*2.)*self.rhoB_Indiv(a_val, uni=1) * self.Nbrane
+        Jma[0, self.TotalVars + 4] += 2./(HUB**2.)*self.rhoG_Indiv(a_val, uni=1) * self.Nbrane
+        Jma[0, self.TotalVars + 6] += 2./(HUB**2.)*self.rhoNeu_Indiv(a_val, uni=1) * self.Nbrane
 
         # CDM density
         Jma[1,2] += -self.k/(HUB*a_val)
