@@ -6,16 +6,16 @@ from multiprocessing import Pool
 Ftag = 'StandardUniverse'
 lmax_Pert = 5
 
-compute_LP = False
-compute_TH = False
+compute_LP = True
+compute_TH = True
 compute_CMB = True
 compute_MPS = True
 
 kmin = 1e-3
 kmax = 0.5
-knum = 20
+knum = 200
 lmax = 2500
-lvals = 20
+lvals = 250
 
 OM_b = 0.0484
 OM_c = 0.258 
@@ -35,7 +35,7 @@ def CMB_wrap(kval):
 if compute_LP or compute_TH:
     pool = Pool(processes=None)
     pool.map(CMB_wrap, kgrid)
-    
+
 
 if compute_CMB:
     CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,

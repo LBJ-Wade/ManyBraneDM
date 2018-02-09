@@ -27,6 +27,7 @@ class CMB(object):
         self.lvals = lvals
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.lmax_Pert = lmax_Pert
+        self.lmin = 10
         
         self.kVAL = kVAL
         
@@ -96,11 +97,11 @@ class CMB(object):
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             index = np.where(kgrid == self.kVAL)[0][0] + 1
 
-        ell_tab = np.linspace(10, self.lmax, self.lvals, dtype=int)
+        ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         if not os.path.isfile(ThetaFile):
-            ThetaTabTot = np.zeros((self.knum, self.lvals))
-            print np.shape(ell_tab), np.shape(ThetaTabTot)
+            ThetaTabTot = np.zeros((self.knum, len(ell_tab)))
+            #print np.shape(ell_tab), np.shape(ThetaTabTot)
             np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
@@ -147,7 +148,8 @@ class CMB(object):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         thetaTab = np.loadtxt(ThetaFile)
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        ell_tab = np.linspace(10, self.lmax, self.lvals)
+        
+        ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
