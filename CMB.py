@@ -101,8 +101,7 @@ class CMB(object):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         if not os.path.isfile(ThetaFile):
             ThetaTabTot = np.zeros((self.knum, len(ell_tab)))
-            #print np.shape(ell_tab), np.shape(ThetaTabTot)
-            np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
+            np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot + 1)))
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
@@ -138,6 +137,7 @@ class CMB(object):
         
         tabhold = np.loadtxt(ThetaFile)
         if self.kVAL is not None:
+            #print np.shape(tabhold[index]), np.shape(thetaVals), index
             tabhold[index] = thetaVals
         else:
             tabhold = np.vstack((tabhold, thetaVals))
