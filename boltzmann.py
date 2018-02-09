@@ -422,12 +422,14 @@ class ManyBrane_Universe(object):
         self.omega_nu_T = np.sum(omega_nu)
         self.omega_M_T = np.sum(omega_cdm + omega_b)
         self.omega_R_T = np.sum(omega_g + omega_nu)
-        self.omega_L_T = np.sum(1. - self.omega_M - self.omega_R)
+        self.omega_L_T = np.sum(1. - self.omega_M_T - self.omega_R_T)
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
         self.omega_g = omega_g
         self.omega_nu = omega_nu
         
+        print self.omega_M_T, self.omega_R_T, self.omega_L_T
+        exit()
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.eta_0 = 1.4100e4 #1.4135e+04
@@ -450,7 +452,7 @@ class ManyBrane_Universe(object):
         self.Theta_P_Dot_D = np.zeros(self.Lmax+1 ,dtype=object)
         self.Neu_Dot_D = np.zeros(self.Lmax+1 ,dtype=object)
         
-        self.combined_vector = np.zeros(self.TotalVars ,dtype=object)
+        self.combined_vector = np.zeros(2*self.TotalVars-1 ,dtype=object)
         self.Psi_vec = []
         self.Phi_vec = []
         self.combined_vector[0] = self.Phi_vec
@@ -463,17 +465,14 @@ class ManyBrane_Universe(object):
             self.combined_vector[6+i*3] = self.Theta_P_Dot[i] = []
             self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
-        self.combined_vector_D = np.zeros(self.TotalVars ,dtype=object)
-        
-        self.combined_vector_D[0] = self.combined_vector[0]
-        self.combined_vector_D[1] = self.dot_rhoCDM_vec_D = []
-        self.combined_vector_D[2] = self.dot_velCDM_vec_D = []
-        self.combined_vector_D[3] = self.dot_rhoB_vec_D = []
-        self.combined_vector_D[4] = self.dot_velB_vec_D = []
+        self.combined_vector[self.TotalVars] = self.dot_rhoCDM_vec_D = []
+        self.combined_vector[self.TotalVars+1] = self.dot_velCDM_vec_D = []
+        self.combined_vector[self.TotalVars+2] = self.dot_rhoB_vec_D = []
+        self.combined_vector[self.TotalVars+3] = self.dot_velB_vec_D = []
         for i in range(self.Lmax + 1):
-            self.combined_vector_D[5+i*3] = self.Theta_Dot_D[i] = []
-            self.combined_vector_D[6+i*3] = self.Theta_P_Dot_D[i] = []
-            self.combined_vector_D[7+i*3] = self.Neu_Dot_D[i] = []
+            self.combined_vector[self.TotalVars+4+i*3] = self.Theta_Dot_D[i] = []
+            self.combined_vector[self.TotalVars+5+i*3] = self.Theta_P_Dot_D[i] = []
+            self.combined_vector[self.TotalVars+6+i*3] = self.Neu_Dot_D[i] = []
         
         self.load_funcs()
         
@@ -504,6 +503,11 @@ class ManyBrane_Universe(object):
         self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
         self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+        
+        self.MatFrac = np.array([1., 0.5, 0.25, 0.1, 0.066667])
+        self.xeMulti = np.loadtxt(path + '/precomputed/Xe_MultiTab.dat')
+        self.csMulti = np.loadtxt(path + '/precomputed/Csnd_MultiTab.dat')
+        
         return
 
     def init_conds(self, eta_0, aval):
@@ -536,7 +540,6 @@ class ManyBrane_Universe(object):
             self.Neu_Dot_D[0].append(-1./2.*self.Psi_vec[-1])
             self.Neu_Dot_D[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
             self.Neu_Dot_D[2].append(1./30.*(self.k*eta_0)**2.*self.Psi_vec[-1])
-            
             
             for i in range(self.Lmax + 1):
                 if i > 1:
@@ -623,20 +626,19 @@ class ManyBrane_Universe(object):
             tau_n = (self.y_vector[-1] - self.y_vector[-2]) / self.y_vector[-2]
 
         delt = (self.y_vector[-1] - self.y_vector[-2])
-        Ident = np.eye(self.TotalVars)
-        Ident_D = np.eye(self.TotalVars)
+        Ident = np.eye(self.TotalVars*2 - 1)
         Jmat = self.matrix_J(self.y_vector[-1])
         
         Amat = (1.+2.*tau_n)/(1.+tau_n)*Ident - delt*Jmat
         bvec = self.b_vector(tau_n)
         ysol = np.matmul(inv(Amat),bvec)
-        for i in range(self.TotalVars):
+        for i in range(2*self.TotalVars - 1):
             self.combined_vector[i].append(ysol[i])
         return
     
     def b_vector(self, tau):
-        bvec = np.zeros(self.TotalVars)
-        for i in range(self.TotalVars):
+        bvec = np.zeros(2*self.TotalVars - 1)
+        for i in range(2*self.TotalVars - 1):
             if self.step == 0:
                 bvec[i] = (1.+tau)*self.combined_vector[i][-1]
             else:
@@ -648,7 +650,7 @@ class ManyBrane_Universe(object):
         eta = self.conform_T(a_val)
         HUB = self.hubble(a_val)
         
-        Jma = np.zeros((2.*self.TotalVars-1, 2.*self.TotalVars-1))
+        Jma = np.zeros((2*self.TotalVars-1, 2*self.TotalVars-1))
         
         Rfac = (3.*self.omega_b[0]*a_val)/(4.*self.omega_g[0])
         RR = (4.*self.omega_g[0])/(3.*self.omega_b[0]*a_val)
@@ -659,8 +661,10 @@ class ManyBrane_Universe(object):
         n_b = 2.503e-7
         dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
         # Note: If you want to change \omega_b / \omega_g you need to modify this function
-        dTa_D = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
+        dTa_D = -self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0])*(1.-Yp)*n_b*6.65e-29*1e4/ \
+                a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         CsndB = self.Csnd(a_val)
+        CsndB_D = self.Multi_Cs(a_val, self.omega_b[1]/self.omega_b[0])
         
         if self.testing:
             self.aLIST.append(a_val)
@@ -673,7 +677,7 @@ class ManyBrane_Universe(object):
         tflip_TCA = 1e-4
         tflip_HO = 1e-5
         
-        PsiTerm = np.zeros(self.TotalVars)
+        PsiTerm = np.zeros(2*self.TotalVars-1)
         PsiTerm[0] = -1.
         PsiTerm[11] = -12.*(a_val/self.k)**2.*self.omega_g[0]*self.H_0**2./a_val**4.
         PsiTerm[13] = -12.*(a_val/self.k)**2.*self.omega_nu[0]*self.H_0**2./a_val**4.
@@ -873,17 +877,17 @@ class ManyBrane_Universe(object):
             Jma[14+3*inx+2,14+3*inx+2-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
             Jma[14+3*inx+2,14+3*inx+2+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
 
-            inx_D = self.TotalVars + i - 14 - 1
-            Jma[14+3*inx_D,14+3*inx_D] += dTa_D / (HUB*a_val)
-            Jma[14+3*inx_D,14+3*inx_D-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
-            Jma[14+3*inx_D,14+3*inx_D+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+            inx_D = self.TotalVars - 1
+            Jma[inx_D+14+3*inx,inx_D+14+3*inx] += dTa_D / (HUB*a_val)
+            Jma[inx_D+14+3*inx,inx_D+14+3*inx-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[inx_D+14+3*inx,inx_D+14+3*inx+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
 
-            Jma[14+3*inx_D+1,14+3*inx_D+1] += dTa_D / (HUB*a_val)
-            Jma[14+3*inx_D+1,14+3*inx_D+1-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
-            Jma[14+3*inx_D+1,14+3*inx_D+1+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+            Jma[inx_D+14+3*inx+1,inx_D+14+3*inx+1] += dTa_D / (HUB*a_val)
+            Jma[inx_D+14+3*inx+1,inx_D+14+3*inx+1-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[inx_D+14+3*inx+1,inx_D+14+3*inx+1+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
 
-            Jma[14+3*inx_D+2,14+3*inx_D+2-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
-            Jma[14+3*inx_D+2,14+3*inx_D+2+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
+            Jma[inx_D+14+3*inx+2,inx_D+14+3*inx+2-3] += self.k*elV/((2.*elV + 1.)*(HUB*a_val))
+            Jma[inx_D+14+3*inx+2,inx_D+14+3*inx+2+3] += -self.k*(elV+1.)/((2.*elV + 1.)*(HUB*a_val))
 
 
         # Theta Lmax
@@ -918,9 +922,26 @@ class ManyBrane_Universe(object):
     def conform_T(self, a):
         return quad(lambda x: 1./self.H_0 /np.sqrt(self.omega_R_T+self.omega_M_T*x+self.omega_L_T*x**4.), 0., a)[0]
     
+    def Multi_Xe(self, a, omB_frac):
+        if a < np.min(self.xeMulti[:,0]):
+            return self.xe_deta(a)
+        indx = np.argmin(np.abs(self.xeMulti[:,0] - a))
+        ValFind = interp1d(np.log10(self.MatFrac), np.log10(self.xeMulti[indx, 1:]), kind='linear',
+                            bounds_error=False, fill_value='extrapolate')
+        
+        return 10.**ValFind(np.log10(omB_frac))
+    
+    def Multi_Cs(self, a, omB_frac):
+        if a < np.min(self.csMulti[:,0]):
+            return self.Csnd(a)
+        indx = np.argmin(np.abs(self.csMulti[:,0] - a))
+        ValFind = interp1d(np.log10(self.MatFrac), self.csMulti[indx, 1:], kind='linear',
+                            bounds_error=False, fill_value='extrapolate')
+        
+        return 10.**ValFind(np.log10(omB_frac))/a
 
     def hubble(self, a):
-        return self.H_0*np.sqrt(self.omega_R*a**-4+self.omega_M*a**-3.+self.omega_L)
+        return self.H_0*np.sqrt(self.omega_R_T*a**-4+self.omega_M_T*a**-3.+self.omega_L_T)
 
     def xe_deta(self, a):
         return self.Xe(np.log10(a))
@@ -949,34 +970,50 @@ class ManyBrane_Universe(object):
     def rhoNeu_Indiv(self, a, uni=0):
         return self.omega_nu[uni] * self.H_0**2. * a**-4.
 
-    # TODO: Fix below
     def epsilon_test(self, a):
-        denom = (self.omega_M*a**-3. + self.omega_R*a**-4. + self.omega_L)
+        denom = (self.omega_M_T*a**-3. + self.omega_R_T*a**-4. + self.omega_L_T)
         phiTerm = -2./3.*(self.k/(a*self.H_0))**2.*self.combined_vector[0][-1]
-        denTerm = (self.omega_cdm*self.combined_vector[1][-1]+self.omega_b*self.combined_vector[3][-1])*a**-3. +\
-                  4.*(self.omega_g*self.combined_vector[5][-1]+self.omega_nu*self.combined_vector[7][-1])*a**-4.
+        
+        denTerm = (self.omega_cdm[0]*self.combined_vector[1][-1]+self.omega_b[0]*self.combined_vector[3][-1])*a**-3. +\
+                  4.*(self.omega_g[0]*self.combined_vector[5][-1]+self.omega_nu[0]*self.combined_vector[7][-1])*a**-4.
+        denTerm_D = (self.omega_cdm[1]*self.combined_vector[self.TotalVars][-1]+
+                     self.omega_b[1]*self.combined_vector[self.TotalVars+2][-1])*a**-3. +\
+                  4.*(self.omega_g[1]*self.combined_vector[self.TotalVars+4][-1]+
+                    self.omega_nu[1]*self.combined_vector[self.TotalVars+6][-1])*a**-4.
+        
         velTerm = 3.*a*self.hubble(a)/self.k*(
-                 (self.omega_cdm*self.combined_vector[2][-1]+self.omega_b*self.combined_vector[4][-1])*a**-3. +
-                 4.*(self.omega_g*self.combined_vector[8][-1]+self.omega_nu*self.combined_vector[10][-1])*a**-4.)
-        return (phiTerm + denTerm + velTerm)/denom
+                 (self.omega_cdm[0]*self.combined_vector[self.TotalVars+1][-1]+
+                 self.omega_b[0]*self.combined_vector[self.TotalVars+3][-1])*a**-3. +
+                 4.*(self.omega_g[0]*self.combined_vector[self.TotalVars+7][-1]+
+                 self.omega_nu[0]*self.combined_vector[self.TotalVars+9][-1])*a**-4.)
+        velTerm_D = 3.*a*self.hubble(a)/self.k*(
+                 (self.omega_cdm[1]*self.combined_vector[self.TotalVars+1][-1]+
+                 self.omega_b[1]*self.combined_vector[self.TotalVars+3][-1])*a**-3. +
+                 4.*(self.omega_g[1]*self.combined_vector[self.TotalVars+7][-1]+
+                 self.omega_nu[1]*self.combined_vector[self.TotalVars+9][-1])*a**-4.)
+        print (phiTerm + denTerm + velTerm + velTerm_D)/(denTerm + denTerm_D)
+        return (phiTerm + denTerm + velTerm + velTerm_D)/(denTerm + denTerm_D)
 
 
     def save_system(self):
         psi_term = np.zeros(len(self.eta_vector))
         for i in range(len(self.eta_vector)):
             aval = 10.**self.ct_to_scale(np.log10(self.eta_vector[i]))
-            psi_term[i] = -12.*(aval**2./self.k**2.*(self.rhoNeu(aval)*self.combined_vector[13][i] +
-                                                       self.rhoG(aval)*self.combined_vector[11][i])) - self.combined_vector[0][i]
+            psi_term[i] = -12.*(aval**2./self.k**2.)* \
+                        ((self.rhoNeu_Indiv(aval, uni=0)*self.combined_vector[13][i] + self.rhoG_Indiv(aval,uni=0)*self.combined_vector[11][i]) + \
+                        (self.rhoNeu_Indiv(aval, uni=1)*self.combined_vector[self.TotalVars+12][i] +
+                        self.rhoG_Indiv(aval, uni=1)*self.combined_vector[self.TotalVars+10][i])) - \
+                         self.combined_vector[0][i]
         
-        sve_tab = np.zeros((len(self.eta_vector), self.TotalVars+2))
+        sve_tab = np.zeros((len(self.eta_vector), 2*self.TotalVars+1))
         sve_tab[:,0] = self.eta_vector
-        sve_tab[:,-1] = psi_term
-        for i in range(self.TotalVars):
-            sve_tab[:,i+1] = self.combined_vector[i]
-        np.savetxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_{:.4e}.dat'.format(self.k), sve_tab, fmt='%.8e', delimiter='    ')
+        sve_tab[:,1] = psi_term
+        for i in range(2*self.TotalVars-1):
+            sve_tab[:,i+2] = self.combined_vector[i]
+        np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_{:.4e}.dat'.format(self.k), sve_tab, fmt='%.8e', delimiter='    ')
         
         if self.testing:
-            np.savetxt(path+'/OutputFiles/StandardUniverse_Background.dat',
+            np.savetxt(path+'/OutputFiles/MultiBrane_Background.dat',
                         np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST, self.dtauLIST)))
         return
 
