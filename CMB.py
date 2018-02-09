@@ -34,6 +34,13 @@ class CMB(object):
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
+        ell_val = range(self.lmin, self.lmax, 10)
+        self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
+        self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
+        self.ThetaTabTot[0,:] = ell_val
+
+        self.fill_inx = 0
+        
         if compute_LP:
             print 'Computing Perturbation Fields...\n'
             self.kspace_linear_pert()
@@ -46,6 +53,7 @@ class CMB(object):
             else:
                 for k in kgrid:
                     self.theta_integration(k)
+            np.savetxt(self.ThetaFile, self.ThetaTabTot)
         if compute_CMB:
             print 'Computing CMB...\n'
             self.computeCMB()
@@ -96,14 +104,10 @@ class CMB(object):
         if self.kVAL is not None:
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             index = np.where(kgrid == self.kVAL)[0][0] + 1
-
-        ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
-        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
-        if not os.path.isfile(ThetaFile):
-            ThetaTabTot = np.zeros((self.knum, len(ell_tab)))
-            np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
-            print np.shape(np.vstack((ell_tab, ThetaTabTot)))
-            
+        ell_tab = self.ThetaTabTot[0,:]
+        #ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
+        #np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
+        
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
@@ -126,24 +130,23 @@ class CMB(object):
             
             term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
                                     3/(4.*k**2.)*PI_DD(np.log10(x)))* \
-                                    spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+                                    spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
             
-            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(ell-1, k*(self.eta0 - x)) -
-                                                                      (ell+1)*spherical_jn(ell, k*(self.eta0 - x))/(k*(self.eta0 - x))),
+            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
+                                                                      (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
                                                                       self.eta_start, self.eta0, limit=200)
             
             term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
-                                   spherical_jn(ell, k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+                                   spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
             thetaVals[i] =  (term1[0] + term2[0] + term3[0])
+            #print k, ell, thetaVals[i]
         
-        
-        tabhold = np.loadtxt(ThetaFile)
+        #tabhold = np.loadtxt(ThetaFile)
         if self.kVAL is not None:
-            #print np.shape(tabhold[index]), np.shape(thetaVals), index
-            tabhold[index] = thetaVals
+            self.ThetaTabTot[index] = thetaVals
         else:
-            tabhold = np.vstack((tabhold, thetaVals))
-        np.savetxt(ThetaFile, tabhold)
+            self.fill_inx += 1
+            self.ThetaTabTot[self.fill_inx] = thetaVals
         return
 
     def computeCMB(self):
@@ -151,7 +154,7 @@ class CMB(object):
         thetaTab = np.loadtxt(ThetaFile)
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         
-        ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
+        ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
