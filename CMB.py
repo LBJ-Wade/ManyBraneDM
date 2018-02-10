@@ -110,36 +110,50 @@ class CMB(object):
         
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
-        theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
-        psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
-        vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
-        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
-        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
-        PI = interp1d(np.log10(fields[:,0]), fields[:, 6]+fields[:, 11]+fields[:, 12],
-                      kind='cubic', bounds_error=False, fill_value=0.)
+        theta0 = fields[:,6]
+        psi = fields[:,-1]
+        vb = fields[:,5]
+        
+        #theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
+        #psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
+        #vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
+        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
+#        PI = interp1d(np.log10(fields[:,0]), fields[:, 6]+fields[:, 11]+fields[:, 12],
+#                      kind='cubic', bounds_error=False, fill_value=0.)
+        PI = fields[:, 6]+fields[:, 11]+fields[:, 12]
         pitermL = (fields[:, 6]+fields[:, 11]+fields[:, 12]) * self.visibility(fields[:,0])
         der2PI = np.zeros((len(fields[:,0])-2))
         for i in range(len(fields[:,0]) - 2):
             h2 = fields[i+2,0] - fields[i+1,0]
             h1 = fields[i+1,0] - fields[i,0]
             der2PI[i] = 2.*(h2*pitermL[i] -(h1+h2)*pitermL[i+1] + h1*pitermL[i+2])/(h1*h2*(h1+h2))
-        PI_DD = interp1d(np.log10(fields[1:-1,0]), der2PI, kind='cubic', bounds_error=False, fill_value=0.)
+        PI_DD = interp1d(np.log10(fields[1:-1,0]), der2PI, kind='linear', bounds_error=False, fill_value=0.)
         
         thetaVals = np.zeros(len(ell_tab))
+        e_vals = fields[:,0]
         for i,ell in enumerate(ell_tab):
-            
-            term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
-                                    3/(4.*k**2.)*PI_DD(np.log10(x)))* \
-                                    spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
-            
-            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
-                                                                      (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
-                                                                      self.eta_start, self.eta0, limit=200)
-            
-            term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
-                                   spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
-            thetaVals[i] =  (term1[0] + term2[0] + term3[0])
+            jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
+            jvalLm1 = spherical_jn(int(ell-1), k*(self.eta0 - e_vals))
+            term1 = np.trapz(self.visibility(e_vals)*\
+                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals))*jvalL,e_vals)
+            term2 = np.trapz(self.visibility(e_vals)*vb*(jvalLm1 - (ell+1)*jvalL) ,e_vals)
+            term3 = np.trapz(self.exp_opt_depth(e_vals)*\
+                             (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
+#            term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
+#                                    3/(4.*k**2.)*PI_DD(np.log10(x)))* \
+#                                    spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+#            
+#            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
+#                                                                      (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
+#                                                                      self.eta_start, self.eta0, limit=200)
+#            
+#            term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
+#                                   spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
+
+            #thetaVals[i] =  (term1[0] + term2[0] + term3[0])
             #print k, ell, thetaVals[i]
+            thetaVals[i] = term1 + term2 + term3
         
         #tabhold = np.loadtxt(ThetaFile)
         if self.kVAL is not None:
