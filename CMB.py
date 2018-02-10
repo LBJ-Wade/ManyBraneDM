@@ -136,7 +136,7 @@ class CMB(object):
             jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
             jvalLm1 = spherical_jn(int(ell-1), k*(self.eta0 - e_vals))
             term1 = np.trapz(self.visibility(e_vals)*\
-                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals))*jvalL,e_vals)
+                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals)))*jvalL,e_vals)
             term2 = np.trapz(self.visibility(e_vals)*vb*(jvalLm1 - (ell+1)*jvalL) ,e_vals)
             term3 = np.trapz(self.exp_opt_depth(e_vals)*\
                              (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
