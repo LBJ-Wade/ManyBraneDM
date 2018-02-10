@@ -162,7 +162,7 @@ class CMB(object):
             #theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
             kshort = kgrid[thetaTab[1:,i] != 0]
             Tshort = thetaTab[1:,i][thetaTab[1:,i] != 0]
-            theta_L = interp1d(np.log10(kgrid), np.log10(Tshort**2.), kind='linear', bounds_error=False, fill_value='extrapolate')
+            theta_L = interp1d(np.log10(kshort), np.log10(Tshort**2.), kind='linear', bounds_error=False, fill_value='extrapolate')
 #            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
 #                      self.kmin, self.kmax, limit=500)
             cL = quad(lambda x: np.abs(10.**theta_L(np.log10(x))/self.init_pert**2.)*(100.*np.pi)/(9.*x),
