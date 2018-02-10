@@ -159,9 +159,11 @@ class CMB(object):
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
 
         for i,ell in enumerate(ell_tab):
-            
-            theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
-            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
+            #theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
+            theta_L = interp1d(np.log10(kgrid), np.log10(thetaTab[1:,i]**2.), kind='linear', bounds_error=False, fill_value='extrapolate')
+#            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
+#                      self.kmin, self.kmax, limit=500)
+            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert**2.)*(100.*np.pi)/(9.*x),
                       self.kmin, self.kmax, limit=500)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cL[0] * GF]
 
