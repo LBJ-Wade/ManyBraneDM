@@ -26,7 +26,7 @@ OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
 
 def CMB_wrap(kval):
-    SetCMB.run(kVAL=kval, compute_LP=compute_LP, compute_TH=compute_TH,
+    SetCMB.runall(kVAL=kval, compute_LP=compute_LP, compute_TH=compute_TH,
                compute_CMB=False, compute_MPS=False)
     return
 
@@ -40,9 +40,9 @@ if compute_LP or compute_TH:
         SetCMB.SaveThetaFile()
 
 if compute_CMB:
-    SetCMB.run(compute_LP=False, compute_TH=False,
+    SetCMB.runall(compute_LP=False, compute_TH=False,
                compute_CMB=compute_CMB, compute_MPS=False)
 if compute_MPS:
-    SetCMB.run(compute_LP=False, compute_TH=False,
+    SetCMB.runall(compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=compute_MPS)
 
