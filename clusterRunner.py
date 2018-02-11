@@ -26,23 +26,23 @@ OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
 
 def CMB_wrap(kval):
-    CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
-            lvals=lvals, compute_LP=True, compute_TH=True,
-            compute_CMB=False, compute_MPS=False, kVAL=kval,
-            Ftag=Ftag, lmax_Pert=lmax_Pert)
+    SetCMB.run(kVAL=kval, compute_LP=compute_LP, compute_TH=compute_TH,
+               compute_CMB=False, compute_MPS=False)
     return
+
+SetCMB = CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
+             lvals=lvals, Ftag=Ftag, lmax_Pert=lmax_Pert)
 
 if compute_LP or compute_TH:
     pool = Pool(processes=None)
     pool.map(CMB_wrap, kgrid)
-
+    if compute_TH:
+        SetCMB.SaveThetaFile()
 
 if compute_CMB:
-    CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
-        lvals=lvals, compute_LP=False, compute_TH=False, compute_CMB=True,
-        compute_MPS=False, Ftag=Ftag, lmax_Pert=lmax_Pert)
+    SetCMB.run(compute_LP=False, compute_TH=False,
+               compute_CMB=compute_CMB, compute_MPS=False)
 if compute_MPS:
-    CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
-        lvals=lvals, compute_LP=False, compute_TH=False, compute_CMB=False,
-        compute_MPS=True, Ftag=Ftag, lmax_Pert=lmax_Pert)
+    SetCMB.run(compute_LP=False, compute_TH=False,
+               compute_CMB=False, compute_MPS=compute_MPS)
 

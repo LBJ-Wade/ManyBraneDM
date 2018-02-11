@@ -11,8 +11,7 @@ path = os.getcwd()
 class CMB(object):
 
     def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
-                 lmax=2500, lvals=250, compute_LP=False, compute_TH=False,
-                 compute_CMB=False, compute_MPS=False, kVAL=None,
+                 lmax=2500, lvals=250,
                  Ftag='StandardUniverse', lmax_Pert=5):
         self.OM_b = OM_b
         self.OM_c = OM_c
@@ -29,31 +28,36 @@ class CMB(object):
         self.lmax_Pert = lmax_Pert
         self.lmin = 10
         
-        self.kVAL = kVAL
         
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
         ell_val = range(self.lmin, self.lmax, 10)
+        
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
         self.ThetaTabTot[0,:] = ell_val
 
         self.fill_inx = 0
+        if os.path.isfile(self.ThetaFile):
+            os.remove(self.ThetaFile)
+    
+    def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
+               compute_CMB=False, compute_MPS=False):
         
         if compute_LP:
             print 'Computing Perturbation Fields...\n'
-            self.kspace_linear_pert()
+            self.kspace_linear_pert(kVAL)
         if compute_TH:
             print 'Computing Theta Files...\n'
             self.loadfiles()
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-            if self.kVAL is not None:
-                self.theta_integration(self.kVAL)
+            if kVAL is not None:
+                self.theta_integration(kVAL, kVAL=kVAL)
             else:
                 for k in kgrid:
                     self.theta_integration(k)
-            np.savetxt(self.ThetaFile, self.ThetaTabTot)
+
         if compute_CMB:
             print 'Computing CMB...\n'
             self.computeCMB()
@@ -78,10 +82,10 @@ class CMB(object):
         self.eta_start = 10.**self.scale_to_ct(visfunc[-1,0])
         return
 
-    def kspace_linear_pert(self):
+    def kspace_linear_pert(self, kVAL=None):
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        if self.kVAL is not None:
-            kgrid = [self.kVAL]
+        if kVAL is not None:
+            kgrid = [kVAL]
         for k in kgrid:
             fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
@@ -100,10 +104,10 @@ class CMB(object):
         print 'All k values computed!'
         return
 
-    def theta_integration(self, k):
-        if self.kVAL is not None:
+    def theta_integration(self, k, kVAL=None):
+        if kVAL is not None:
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-            index = np.where(kgrid == self.kVAL)[0][0] + 1
+            index = np.where(kgrid == kVAL)[0][0] + 1
         ell_tab = self.ThetaTabTot[0,:]
         #ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
         #np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
@@ -156,12 +160,15 @@ class CMB(object):
             thetaVals[i] = term1 + term2 + term3
         
         #tabhold = np.loadtxt(ThetaFile)
-        if self.kVAL is not None:
+        if kVAL is not None:
             self.ThetaTabTot[index] = thetaVals
         else:
             self.fill_inx += 1
             self.ThetaTabTot[self.fill_inx] = thetaVals
         return
+    
+    def SaveThetaFile(self):
+        np.savetxt(self.ThetaFile, self.ThetaTabTot)
 
     def computeCMB(self):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'

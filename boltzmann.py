@@ -156,7 +156,7 @@ class Universe(object):
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
-                print 'Failed test of expansion/Courant time...'
+                #print 'Failed test of expansion/Courant time...'
                 try_count += 1
                 continue
             self.step_solver()
@@ -167,14 +167,14 @@ class Universe(object):
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
-                print 'Failed epsilon test...   Value: {:.3e}'.format(test_epsilon)
+                #print 'Failed epsilon test...   Value: {:.3e}'.format(test_epsilon)
                 try_count += 1
                 continue
             self.step += 1
             if (np.abs(test_epsilon) < 1e-4*self.accuracy) and not last_step_up:
-                self.stepsize *= 1.25
+                self.stepsize *= 1.1
                 last_step_up = True
-                print 'Increase Step Size'
+                #print 'Increase Step Size'
             else:
                 last_step_up = False
             try_count = 0.
@@ -415,13 +415,12 @@ class ManyBrane_Universe(object):
     
     def __init__(self, Nbrane, k, omega_b, omega_cdm, omega_g, omega_L, omega_nu, accuracy=1e-3,
                  stepsize=0.01, lmax=5, testing=False):
-        self.omega_b_T = np.sum(omega_b)
-        self.omega_cdm_T = np.sum(omega_cdm)
-        #self.omega_L = np.sum(omega_L)
-        self.omega_g_T = np.sum(omega_g)
-        self.omega_nu_T = np.sum(omega_nu)
-        self.omega_M_T = np.sum(omega_cdm + omega_b)
-        self.omega_R_T = np.sum(omega_g + omega_nu)
+        self.omega_b_T = omega_b[0] + Nbrane*omega_b[1]
+        self.omega_cdm_T = omega_cdm[0] + Nbrane*omega_cdm[1]
+        self.omega_g_T = omega_g[0] + Nbrane*omega_g[1]
+        self.omega_nu_T = omega_nu[0] + Nbrane*omega_nu[1]
+        self.omega_M_T = self.omega_b_T + self.omega_cdm_T
+        self.omega_R_T = self.omega_nu_T + self.omega_g_T
         self.omega_L_T = np.sum(1. - self.omega_M_T - self.omega_R_T)
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
@@ -429,8 +428,12 @@ class ManyBrane_Universe(object):
         self.omega_nu = omega_nu
         self.Nbrane = Nbrane
         
-        print self.omega_M_T, self.omega_R_T, self.omega_L_T
-        exit()
+        print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
+        
+        if omega_b[1]/omega_b[0] > 1:
+            print 'Too much baryonic matter on a dark brane...'
+            print '{:.3f} needs to be less than 1.0'.format(omega_b[1]/omega_b[0])
+            exit()
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.eta_0 = 1.4100e4 #1.4135e+04
@@ -485,6 +488,10 @@ class ManyBrane_Universe(object):
             self.hubLIST = []
             self.dtauLIST = []
             self.xeLIST = []
+            self.csD_LIST = []
+            self.dtauD_LIST = []
+            self.xeD_LIST = []
+
         return
 
     def load_funcs(self):
@@ -552,6 +559,9 @@ class ManyBrane_Universe(object):
                     self.Neu_Dot[i].append(0.)
                     self.Neu_Dot_D[i].append(0.)
 
+#        for i in range(1,self.TotalVars):
+#            print self.combined_vector[i], self.combined_vector[self.TotalVars+i-1]
+
         self.step = 0
         return
     
@@ -565,6 +575,10 @@ class ManyBrane_Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
+#        test initial conditions
+#        self.epsilon_test(np.exp(self.y_vector[-1]))
+#        exit()
+
         try_count = 0.
         try_max = 20.
         FailRUN = False
@@ -591,26 +605,26 @@ class ManyBrane_Universe(object):
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
-                print 'Failed test of expansion/Courant time...'
+                #print 'Failed test of expansion/Courant time...'
                 try_count += 1
                 continue
             self.step_solver()
     
-            # TODO: Think about test.
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
             if np.abs(test_epsilon) > self.accuracy and self.step > 10:
+                print np.exp(y_use)
                 raise ValueError
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
-                print 'Failed epsilon test...   Value: {:.3e}'.format(test_epsilon)
+                #print 'Failed epsilon test...   Value: {:.3e}'.format(test_epsilon)
                 try_count += 1
                 continue
             self.step += 1
             if (np.abs(test_epsilon) < 1e-4*self.accuracy) and not last_step_up:
                 self.stepsize *= 1.25
                 last_step_up = True
-                print 'Increase Step Size'
+                #print 'Increase Step Size'
             else:
                 last_step_up = False
             try_count = 0.
@@ -635,6 +649,9 @@ class ManyBrane_Universe(object):
         ysol = np.matmul(inv(Amat),bvec)
         for i in range(2*self.TotalVars - 1):
             self.combined_vector[i].append(ysol[i])
+#        for i in range(1, self.TotalVars):
+#            print self.combined_vector[i][-1],self.combined_vector[self.TotalVars+i-1][-1]
+
         return
     
     def b_vector(self, tau):
@@ -667,6 +684,8 @@ class ManyBrane_Universe(object):
         CsndB = self.Csnd(a_val)
         CsndB_D = self.Multi_Cs(a_val, self.omega_b[1]/self.omega_b[0])
         
+        print a_val, dTa, dTa_D, self.xe_deta(a_val), self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]), CsndB, CsndB_D
+        
         if self.testing:
             self.aLIST.append(a_val)
             self.etaLIST.append(eta)
@@ -674,16 +693,18 @@ class ManyBrane_Universe(object):
             self.csLIST.append(CsndB)
             self.dtauLIST.append(dTa)
             self.xeLIST.append(self.xe_deta(a_val))
+            self.csD_LIST.append(CsndB_D)
+            self.dtauD_LIST.append(dTa_D)
+            self.xeD_LIST.append(self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]))
         
         tflip_TCA = 1e-4
-        tflip_HO = 1e-5
         
         PsiTerm = np.zeros(2*self.TotalVars-1)
         PsiTerm[0] = -1.
         PsiTerm[11] = -12.*(a_val/self.k)**2.*self.omega_g[0]*self.H_0**2./a_val**4.
         PsiTerm[13] = -12.*(a_val/self.k)**2.*self.omega_nu[0]*self.H_0**2./a_val**4.
-        PsiTerm[self.TotalVars + 11 - 1] = -12.*(a_val/self.k)**2.*self.omega_g[1]*self.H_0**2./a_val**4. * self.Nbrane
-        PsiTerm[self.TotalVars + 13 - 1] = -12.*(a_val/self.k)**2.*self.omega_nu[1]*self.H_0**2./a_val**4. * self.Nbrane
+        PsiTerm[self.TotalVars + 11 - 1] = -12.*(a_val/self.k)**2.*self.omega_g[1]*self.H_0**2./a_val**4.*self.Nbrane
+        PsiTerm[self.TotalVars + 13 - 1] = -12.*(a_val/self.k)**2.*self.omega_nu[1]*self.H_0**2./a_val**4.*self.Nbrane
         
         # Phi Time derivative
         Jma[0,:] += PsiTerm
@@ -929,17 +950,22 @@ class ManyBrane_Universe(object):
         indx = np.argmin(np.abs(self.xeMulti[:,0] - a))
         ValFind = interp1d(np.log10(self.MatFrac), np.log10(self.xeMulti[indx, 1:]), kind='linear',
                             bounds_error=False, fill_value='extrapolate')
-        
+        #print 'Vals', np.log10(omB_frac), 10.**ValFind(np.log10(omB_frac))
+        #print 'Stack', np.column_stack((np.log10(self.MatFrac), np.log10(self.xeMulti[indx, 1:])))
         return 10.**ValFind(np.log10(omB_frac))
     
     def Multi_Cs(self, a, omB_frac):
-        if a < np.min(self.csMulti[:,0]):
-            return self.Csnd(a)
         indx = np.argmin(np.abs(self.csMulti[:,0] - a))
+        if a < np.min(self.csMulti[:,0]):
+            #print a,  np.min(self.csMulti[:,0])*self.csMulti[-1, 1:], self.csMulti[-1, 1:]
+            ValFind = interp1d(np.log10(self.MatFrac), np.min(self.csMulti[:,0])*self.csMulti[-1, 1:],
+                               kind='linear', bounds_error=False, fill_value='extrapolate')
+            return ValFind(np.log10(omB_frac)) / a
+        
         ValFind = interp1d(np.log10(self.MatFrac), self.csMulti[indx, 1:], kind='linear',
                             bounds_error=False, fill_value='extrapolate')
         
-        return 10.**ValFind(np.log10(omB_frac))/a
+        return ValFind(np.log10(omB_frac))
 
     def hubble(self, a):
         return self.H_0*np.sqrt(self.omega_R_T*a**-4+self.omega_M_T*a**-3.+self.omega_L_T)
@@ -973,6 +999,7 @@ class ManyBrane_Universe(object):
 
     def epsilon_test(self, a):
         denom = (self.omega_M_T*a**-3. + self.omega_R_T*a**-4. + self.omega_L_T)
+        
         phiTerm = -2./3.*(self.k/(a*self.H_0))**2.*self.combined_vector[0][-1]
         
         denTerm = (self.omega_cdm[0]*self.combined_vector[1][-1]+self.omega_b[0]*self.combined_vector[3][-1])*a**-3. +\
@@ -992,8 +1019,8 @@ class ManyBrane_Universe(object):
                  self.omega_b[1]*self.combined_vector[self.TotalVars+3][-1])*a**-3. +
                  4.*(self.omega_g[1]*self.combined_vector[self.TotalVars+7][-1]+
                  self.omega_nu[1]*self.combined_vector[self.TotalVars+9][-1])*a**-4.)
-        print (phiTerm + denTerm + velTerm + velTerm_D)/(denTerm + denTerm_D)
-        return (phiTerm + denTerm + velTerm + velTerm_D)/(denTerm + denTerm_D)
+        #print a,(phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
+        return (phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
 
 
     def save_system(self):
@@ -1008,13 +1035,14 @@ class ManyBrane_Universe(object):
         
         sve_tab = np.zeros((len(self.eta_vector), 2*self.TotalVars+1))
         sve_tab[:,0] = self.eta_vector
-        sve_tab[:,1] = psi_term
+        sve_tab[:,-1] = psi_term
         for i in range(2*self.TotalVars-1):
-            sve_tab[:,i+2] = self.combined_vector[i]
+            sve_tab[:,i+1] = self.combined_vector[i]
         np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_{:.4e}.dat'.format(self.k), sve_tab, fmt='%.8e', delimiter='    ')
         
         if self.testing:
             np.savetxt(path+'/OutputFiles/MultiBrane_Background.dat',
-                        np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST, self.dtauLIST)))
+                        np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST,
+                                         self.dtauLIST, self.xeD_LIST, self.csD_LIST, self.dtauD_LIST)))
         return
 
