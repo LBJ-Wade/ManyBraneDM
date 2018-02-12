@@ -39,8 +39,9 @@ class CMB(object):
         self.ThetaTabTot[0,:] = ell_val
 
         self.fill_inx = 0
-        if os.path.isfile(self.ThetaFile):
-            os.remove(self.ThetaFile)
+        
+        
+    
     
     def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=False):
@@ -48,6 +49,7 @@ class CMB(object):
         if compute_LP:
             print 'Computing Perturbation Fields...\n'
             self.kspace_linear_pert(kVAL)
+        
         if compute_TH:
             print 'Computing Theta Files...\n'
             self.loadfiles()
@@ -140,7 +142,7 @@ class CMB(object):
             jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
             jvalLm1 = spherical_jn(int(ell-1), k*(self.eta0 - e_vals))
             term1 = np.trapz(self.visibility(e_vals)*\
-                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals)))*jvalL,e_vals)
+                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals)))*jvalL, e_vals)
             term2 = np.trapz(self.visibility(e_vals)*vb*(jvalLm1 - (ell+1)*jvalL) ,e_vals)
             term3 = np.trapz(self.exp_opt_depth(e_vals)*\
                              (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
@@ -168,6 +170,8 @@ class CMB(object):
         return
     
     def SaveThetaFile(self):
+        if os.path.isfile(self.ThetaFile):
+            os.remove(self.ThetaFile)
         np.savetxt(self.ThetaFile, self.ThetaTabTot)
 
     def computeCMB(self):
