@@ -20,13 +20,19 @@ mpl.rcParams['ytick.major.size']=8
 mpl.rcParams['xtick.labelsize']=18
 mpl.rcParams['ytick.labelsize']=18
 
+kval = 0.1
+Nbrane = 50000
+#Fname = 'StandardUniverse_FieldEvolution_{:.4e}.dat'.format(kval)
+#Svname = 'StandardField_kval_{:.4e}.pdf'.format(kval)
+Fname = 'MultiBrane_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(kval, Nbrane)
+Svname = 'MultiverseField_kval_{:.4e}_Nbrane_{:.0f}.pdf'.format(kval, Nbrane)
 
 path = os.getcwd()
 
 pl.figure()
 ax = pl.gca()
 
-file = np.loadtxt(path + '/OutputFiles/StandardUniverse_FieldEvolution_5.0000e-01.dat')
+file = np.loadtxt(path + '/OutputFiles/' + Fname)
 
 time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
 ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
@@ -60,4 +66,4 @@ plt.ylim(ymin=1e-10, ymax=1e4)
 plt.xlim(xmin=1e-6, xmax=1.)
 ax.set_xscale("log")
 ax.set_yscale("log")
-plt.savefig(path + '/Plots/Fields.pdf')
+plt.savefig(path + '/Plots/' + Svname)

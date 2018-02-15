@@ -6,7 +6,7 @@ import sympy
 import scipy
 import scipy.linalg
 from scipy.linalg import lu_solve, lu_factor, inv
-from scipy.integrate import ode, quad
+from scipy.integrate import ode, quad, odeint
 from scipy.interpolate import interp1d
 from constants import *
 import time
@@ -512,9 +512,9 @@ class ManyBrane_Universe(object):
         hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
         self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         
-        self.MatFrac = np.array([1., 0.5, 0.25, 0.1, 0.066667])
-        self.xeMulti = np.loadtxt(path + '/precomputed/Xe_MultiTab.dat')
-        self.csMulti = np.loadtxt(path + '/precomputed/Csnd_MultiTab.dat')
+        #self.MatFrac = np.array([1., 0.5, 0.25, 0.1, 0.066667])
+        #self.xeMulti = np.loadtxt(path + '/precomputed/Xe_MultiTab.dat')
+        #self.csMulti = np.loadtxt(path + '/precomputed/Csnd_MultiTab.dat')
         
         return
 
@@ -575,6 +575,9 @@ class ManyBrane_Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
+        self.xeDark_Tab()
+        self.Tab_dark_Temp()
+
 #        test initial conditions
 #        self.epsilon_test(np.exp(self.y_vector[-1]))
 #        exit()
@@ -679,12 +682,14 @@ class ManyBrane_Universe(object):
         n_b = 2.503e-7
         dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
         # Note: If you want to change \omega_b / \omega_g you need to modify this function
-        dTa_D = -self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0])*(1.-Yp)*n_b*6.65e-29*1e4/ \
-                a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
-        CsndB = self.Csnd(a_val)
-        CsndB_D = self.Multi_Cs(a_val, self.omega_b[1]/self.omega_b[0])
+        xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
+        dTa_D = -xeDk*(1.-Yp)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
-        print a_val, dTa, dTa_D, self.xe_deta(a_val), self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]), CsndB, CsndB_D
+
+        CsndB = self.Csnd(a_val)
+        #CsndB_D = self.Multi_Cs(a_val, self.omega_b[1]/self.omega_b[0])
+        CsndB_D = self.Cs_Sqr_Dark(a_val)
+        #print a_val, dTa, dTa_D, self.xe_deta(a_val), self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]), CsndB, CsndB_D
         
         if self.testing:
             self.aLIST.append(a_val)
@@ -695,9 +700,9 @@ class ManyBrane_Universe(object):
             self.xeLIST.append(self.xe_deta(a_val))
             self.csD_LIST.append(CsndB_D)
             self.dtauD_LIST.append(dTa_D)
-            self.xeD_LIST.append(self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]))
+            self.xeD_LIST.append(xeDk)
         
-        tflip_TCA = 1e-4
+        tflip_TCA = 1e-6
         
         PsiTerm = np.zeros(2*self.TotalVars-1)
         PsiTerm[0] = -1.
@@ -934,6 +939,99 @@ class ManyBrane_Universe(object):
         Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
 
         return Jma
+        
+    def Tab_dark_Temp(self):
+        print 'Calculating Tb evolution of Dark Brane...'
+        y0 = self.y_vector[0]
+        Tg_0 = 2.7255 / np.exp(y0)
+        
+        yvals = np.linspace(y0, 0., 300)
+        solvR = odeint(self.dotT, Tg_0, yvals)
+        self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
+        #np.savetxt(path + '/precomputed/TEST_DARK_TEMP.dat',self.Tb_drk)
+        self.Tb_DARK = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
+        return
+        
+    def dotT(self, T, y):
+        kb = 8.617e-5/1e9 # Gev/K
+        aval = np.exp(y)
+        Yp = 0.245
+        Mpc_to_cm = 3.086e24
+        mol_wei = 0.92513*0.938 # not entirely sure about this number
+        n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
+        hub = self.hubble(aval)
+        omega_Rat = self.omega_g[1]/self.omega_b[1]
+        xeval = 10.**self.XE_DARK_B(np.log10(aval))
+        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xeval*(1.-Yp)*n_b*6.65e-25/hub)*(2.7255/aval - T[0])*Mpc_to_cm)
+    
+    def Cs_Sqr_Dark(self, a):
+        kb = 1.3806e-23
+        mol_wei = 0.92513*1.67e-27 # not entirely sure about this number
+        Tb = 10.**self.Tb_DARK(np.log10(a))
+        extraPT = self.dotT([Tb], np.log(a)) / a
+        csSq = 2.998e8**2.
+        return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
+    
+    def xeDark_Tab(self):
+        print 'Calculating Dark Free Electron Fraction'
+        x0 = 1.
+        yvals = np.logspace(0., np.log10(13.6/(2.7255*8.617e-5)), 500)
+        solvR = odeint(self.xeDiff, x0, yvals)
+        x0Convert = yvals*2.7255*8.617e-5/13.6
+        
+        yvals1 = np.logspace(0., np.log10(54.4/(2.7255*8.617e-5)), 500)
+        solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
+        x0Convert1 = yvals1*2.7255*8.617e-5/54.4
+        yvals2 = np.logspace(0., np.log10(24.6/(2.7255*8.617e-5)), 500)
+        solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
+        x0Convert2 = yvals2*2.7255*8.617e-5/24.6
+        
+        he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
+                                   bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
+        he2_interp = 10.**interp1d(np.log10(x0Convert2), np.log10(solvR_He2[:,0]), kind='linear',
+                                   bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
+        
+        self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
+        #np.savetxt(path + '/precomputed/TEST_XeCURVE.dat', self.Xe_dark)
+        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
+        return
+    
+    def xeDiff(self, val, y, hydrogen=True, first=True):
+        if hydrogen:
+            ep0 = 13.6/1e9  # GeV
+        else:
+            if first:
+                ep0 = 54.4/1e9
+            else:
+                ep0 = 24.6/1e9
+
+        kb = 8.617e-5/1e9 # Gev/K
+        GeV_cm = 5.06e13
+        Mpc_to_cm = 3.086e24
+        me = 5.11e-4 # GeV
+        aval = 2.7255 * kb * y / ep0
+        Yp=0.245
+        if hydrogen:
+            n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
+        else:
+            n_b = 2.503e-7 / aval**3. * Yp * self.omega_b[1]/self.omega_b[0]
+    
+        Tg = 2.7255 / aval * kb # GeV
+        hub = self.hubble(aval)
+        FScsnt = 7.297e-3
+        
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(y)*np.log(y)*(1.9729744e-14)**2. # cm^2
+        beta = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-y)/(1.9729744e-14)**3. # 1/cm
+        beta2 = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-0.25*y)/(1.9729744e-14)**3.*Mpc_to_cm # 1/Mpc
+        
+        if val[0] > 0.999:
+            Cr = 1.
+        else:
+            Lalpha = 8.*np.pi*hub / ((1.216e-5)**3.*(1.-Yp)*n_b*(1.-val[0]))
+            L2g = 8.227 / 2.998e10 * Mpc_to_cm
+            Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
+        Value = 1./(y*hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        return [Value]
 
     def Csnd(self, a):
         return self.Csnd_interp(np.log10(a))/a
@@ -944,29 +1042,6 @@ class ManyBrane_Universe(object):
     def conform_T(self, a):
         return quad(lambda x: 1./self.H_0 /np.sqrt(self.omega_R_T+self.omega_M_T*x+self.omega_L_T*x**4.), 0., a)[0]
     
-    def Multi_Xe(self, a, omB_frac):
-        if a < np.min(self.xeMulti[:,0]):
-            return self.xe_deta(a)
-        indx = np.argmin(np.abs(self.xeMulti[:,0] - a))
-        ValFind = interp1d(np.log10(self.MatFrac), np.log10(self.xeMulti[indx, 1:]), kind='linear',
-                            bounds_error=False, fill_value='extrapolate')
-        #print 'Vals', np.log10(omB_frac), 10.**ValFind(np.log10(omB_frac))
-        #print 'Stack', np.column_stack((np.log10(self.MatFrac), np.log10(self.xeMulti[indx, 1:])))
-        return 10.**ValFind(np.log10(omB_frac))
-    
-    def Multi_Cs(self, a, omB_frac):
-        indx = np.argmin(np.abs(self.csMulti[:,0] - a))
-        if a < np.min(self.csMulti[:,0]):
-            #print a,  np.min(self.csMulti[:,0])*self.csMulti[-1, 1:], self.csMulti[-1, 1:]
-            ValFind = interp1d(np.log10(self.MatFrac), np.min(self.csMulti[:,0])*self.csMulti[-1, 1:],
-                               kind='linear', bounds_error=False, fill_value='extrapolate')
-            return ValFind(np.log10(omB_frac)) / a
-        
-        ValFind = interp1d(np.log10(self.MatFrac), self.csMulti[indx, 1:], kind='linear',
-                            bounds_error=False, fill_value='extrapolate')
-        
-        return ValFind(np.log10(omB_frac))
-
     def hubble(self, a):
         return self.H_0*np.sqrt(self.omega_R_T*a**-4+self.omega_M_T*a**-3.+self.omega_L_T)
 
@@ -1021,7 +1096,7 @@ class ManyBrane_Universe(object):
                  self.omega_nu[1]*self.combined_vector[self.TotalVars+9][-1])*a**-4.)
         #print a,(phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
         return (phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
-
+        #return 1e-4
 
     def save_system(self):
         psi_term = np.zeros(len(self.eta_vector))
@@ -1038,10 +1113,10 @@ class ManyBrane_Universe(object):
         sve_tab[:,-1] = psi_term
         for i in range(2*self.TotalVars-1):
             sve_tab[:,i+1] = self.combined_vector[i]
-        np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_{:.4e}.dat'.format(self.k), sve_tab, fmt='%.8e', delimiter='    ')
+        np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(self.k, self.Nbrane), sve_tab, fmt='%.8e', delimiter='    ')
         
         if self.testing:
-            np.savetxt(path+'/OutputFiles/MultiBrane_Background.dat',
+            np.savetxt(path+'/OutputFiles/MultiBrane_Background_Nbranes_{:.0f}.dat'.format(self.Nbrane),
                         np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST,
                                          self.dtauLIST, self.xeD_LIST, self.csD_LIST, self.dtauD_LIST)))
         return
