@@ -1,21 +1,23 @@
 import numpy as np
 import os
 from CMB import *
-from multiprocessing import Pool
+#from multiprocessing import Pool
 
 Ftag = 'StandardUniverse'
-lmax_Pert = 5
+lmax_Pert = 100
+
+process_Num = None
 
 compute_LP = True
 compute_TH = True
 compute_CMB = True
-compute_MPS = True
+compute_MPS = False
 
 kmin = 1e-3
-kmax = 0.5
-knum = 400
+kmax = 1e-1
+knum = 2000
 lmax = 2500
-lvals = 250
+lvals = 10 # Doesnt do anything right now
 
 OM_b = 0.0484
 OM_c = 0.258 
@@ -34,7 +36,7 @@ SetCMB = CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
              lvals=lvals, Ftag=Ftag, lmax_Pert=lmax_Pert)
 
 if compute_LP or compute_TH:
-    pool = Pool(processes=None)
+    pool = Pool(processes=process_Num)
     pool.map(CMB_wrap, kgrid)
     if compute_TH:
         SetCMB.SaveThetaFile()
