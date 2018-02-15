@@ -149,7 +149,7 @@ class Universe(object):
             y_diff = y_use - self.y_vector[-1]
             self.y_vector.append(y_use)
             
-            if self.step%1000 == 0:
+            if self.step%3000 == 0:
                 print 'Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1]))
             if ((y_diff > eta_use*np.exp(y_use)*self.hubble(np.exp(y_use))) or
                 (y_diff > np.exp(y_use)*self.hubble(np.exp(y_use))/self.k)):
@@ -601,7 +601,7 @@ class ManyBrane_Universe(object):
             y_diff = y_use - self.y_vector[-1]
             self.y_vector.append(y_use)
             
-            if self.step%1000 == 0:
+            if self.step%3000 == 0:
                 print 'Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1]))
             if ((y_diff > eta_use*np.exp(y_use)*self.hubble(np.exp(y_use))) or
                 (y_diff > np.exp(y_use)*self.hubble(np.exp(y_use))/self.k)):
@@ -615,7 +615,7 @@ class ManyBrane_Universe(object):
     
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
             if np.abs(test_epsilon) > self.accuracy and self.step > 10:
-                print np.exp(y_use)
+                #print np.exp(y_use)
                 raise ValueError
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
@@ -685,11 +685,8 @@ class ManyBrane_Universe(object):
         xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
         dTa_D = -xeDk*(1.-Yp)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
-
         CsndB = self.Csnd(a_val)
-        #CsndB_D = self.Multi_Cs(a_val, self.omega_b[1]/self.omega_b[0])
         CsndB_D = self.Cs_Sqr_Dark(a_val)
-        #print a_val, dTa, dTa_D, self.xe_deta(a_val), self.Multi_Xe(a_val, self.omega_b[1]/self.omega_b[0]), CsndB, CsndB_D
         
         if self.testing:
             self.aLIST.append(a_val)
@@ -1094,9 +1091,7 @@ class ManyBrane_Universe(object):
                  self.omega_b[1]*self.combined_vector[self.TotalVars+3][-1])*a**-3. +
                  4.*(self.omega_g[1]*self.combined_vector[self.TotalVars+7][-1]+
                  self.omega_nu[1]*self.combined_vector[self.TotalVars+9][-1])*a**-4.)
-        #print a,(phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
         return (phiTerm + denTerm + denTerm_D*self.Nbrane + velTerm + velTerm_D*self.Nbrane)/(denom)
-        #return 1e-4
 
     def save_system(self):
         psi_term = np.zeros(len(self.eta_vector))

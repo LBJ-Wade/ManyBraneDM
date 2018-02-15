@@ -5,6 +5,8 @@ from frw_metric import *
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.special import spherical_jn
+from multiprocessing import Pool
+import glob
 path = os.getcwd()
 
 
@@ -46,6 +48,7 @@ class CMB(object):
     def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=False):
         
+        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         if compute_LP:
             print 'Computing Perturbation Fields...\n'
             self.kspace_linear_pert(kVAL)
@@ -53,7 +56,6 @@ class CMB(object):
         if compute_TH:
             print 'Computing Theta Files...\n'
             self.loadfiles()
-            kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             if kVAL is not None:
                 self.theta_integration(kVAL, kVAL=kVAL)
             else:
@@ -111,93 +113,53 @@ class CMB(object):
             kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             index = np.where(kgrid == kVAL)[0][0] + 1
         ell_tab = self.ThetaTabTot[0,:]
-        #ell_tab = range(self.lmin, self.lmax, int((self.lmax - self.lmin)/self.lvals))
-        #np.savetxt(ThetaFile, np.vstack((ell_tab, ThetaTabTot)))
-        
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = fields[:,6]
         psi = fields[:,-1]
         vb = fields[:,5]
         
-        #theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
-        #psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
-        #vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+        #theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='linear', bounds_error=False, fill_value=0.)
+        #psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='linear', bounds_error=False, fill_value=0.)
+        #vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='linear', bounds_error=False, fill_value=0.)
         phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
-#        PI = interp1d(np.log10(fields[:,0]), fields[:, 6]+fields[:, 11]+fields[:, 12],
-#                      kind='cubic', bounds_error=False, fill_value=0.)
-        PI = fields[:, 6]+fields[:, 11]+fields[:, 12]
-        pitermL = (fields[:, 6]+fields[:, 11]+fields[:, 12]) * self.visibility(fields[:,0])
-        der2PI = np.zeros((len(fields[:,0])-2))
-        for i in range(len(fields[:,0]) - 2):
-            h2 = fields[i+2,0] - fields[i+1,0]
-            h1 = fields[i+1,0] - fields[i,0]
-            der2PI[i] = 2.*(h2*pitermL[i] -(h1+h2)*pitermL[i+1] + h1*pitermL[i+2])/(h1*h2*(h1+h2))
-        PI_DD = interp1d(np.log10(fields[1:-1,0]), der2PI, kind='linear', bounds_error=False, fill_value=0.)
-        
+
         thetaVals = np.zeros(len(ell_tab))
         e_vals = fields[:,0]
-        for i,ell in enumerate(ell_tab):
-            jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
-            jvalLm1 = spherical_jn(int(ell-1), k*(self.eta0 - e_vals))
-            term1 = np.trapz(self.visibility(e_vals)*\
-                             (theta0 + psi + 0.25*PI + 3./(4.*k**2.)*PI_DD(np.log10(e_vals)))*jvalL, e_vals)
-            term2 = np.trapz(self.visibility(e_vals)*vb*(jvalLm1 - (ell+1)*jvalL) ,e_vals)
-            term3 = np.trapz(self.exp_opt_depth(e_vals)*\
-                             (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
-#            term1 = quad(lambda x: self.visibility(x)*(theta0(np.log10(x)) + psi(np.log10(x)) + 0.25*PI(np.log10(x)) +
-#                                    3/(4.*k**2.)*PI_DD(np.log10(x)))* \
-#                                    spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
-#            
-#            term2 = quad(lambda x: self.visibility(x)*vb(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
-#                                                                      (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
-#                                                                      self.eta_start, self.eta0, limit=200)
-#            
-#            term3 = quad(lambda x: self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*\
-#                                   spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)
-
-            #thetaVals[i] =  (term1[0] + term2[0] + term3[0])
-            #print k, ell, thetaVals[i]
-            thetaVals[i] = term1 + term2 + term3
         
-        #tabhold = np.loadtxt(ThetaFile)
-        if kVAL is not None:
-            self.ThetaTabTot[index] = thetaVals
-        else:
-            self.fill_inx += 1
-            self.ThetaTabTot[self.fill_inx] = thetaVals
+        for i,ell in enumerate(ell_tab):
+            # Using Eq 8.55 Dodelson
+            jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
+            diffJval = spherical_jn(int(ell), k*(self.eta0 - e_vals), derivative=True)
+           
+            term1 = np.trapz(self.visibility(e_vals)*(theta0 + psi)*jvalL , e_vals)
+            term2 = -np.trapz(self.visibility(e_vals)*vb/k*diffJval, e_vals)
+            term3 = np.trapz(self.exp_opt_depth(e_vals)* (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
+            thetaVals[i] = term1 + term2 + term3
+        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(k), thetaVals)
         return
     
     def SaveThetaFile(self):
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
+        ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
+        for i in range(len(ThetaFiles)):
+            dat = np.loadtxt(ThetaFiles[i])
+            self.ThetaTabTot[i+1,:] = dat
+            os.remove(ThetaFiles[i])
         np.savetxt(self.ThetaFile, self.ThetaTabTot)
 
     def computeCMB(self):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         thetaTab = np.loadtxt(ThetaFile)
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
-
         for i,ell in enumerate(ell_tab):
-            #theta_L = interp1d(kgrid, thetaTab[1:,i], kind='cubic', bounds_error=False, fill_value=0.)
-            kshort = kgrid[thetaTab[1:,i] != 0]
-            Tshort = thetaTab[1:,i][thetaTab[1:,i] != 0]
-            print np.column_stack((kshort, Tshort))
-            if len(Tshort) <= 1:
-                print ell
-                CL_table[i] = [ell, 0.]
-                continue
-            theta_L = interp1d(np.log10(kshort), np.log10(Tshort**2.), kind='linear', bounds_error=False, fill_value='extrapolate')
-#            cL = quad(lambda x: np.abs(theta_L(x)/self.init_pert)**2.*(100.*np.pi)/(9.*x),
-#                      self.kmin, self.kmax, limit=500)
-            cL = quad(lambda x: np.abs(10.**theta_L(np.log10(x))/self.init_pert**2.)*(100.*np.pi)/(9.*x),
-                      self.kmin, self.kmax, limit=500)
-            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cL[0] * GF]
+            cL = np.trapz(100.*np.pi/(9.*kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2. , kgrid)
+            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cL*GF]
 
         np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
         return

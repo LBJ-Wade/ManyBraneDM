@@ -2,3 +2,6 @@
 *~
 Plots/*
 OutputFiles/*
+.DS_Store
+precomputed/TEST_DARK_TEMP.dat
+precomputed/TEST_XeCURVE.dat
