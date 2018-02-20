@@ -115,6 +115,10 @@ class CMB(object):
         return
 
     def theta_integration(self, k, kVAL=None):
+        filename = path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(k)
+        if os.path.isfile(filename):
+            return
+        
         if kVAL is not None:
             #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             index = np.where(self.kgrid == kVAL)[0][0] + 1
@@ -153,7 +157,7 @@ class CMB(object):
             thetaVals[i] = term1 + term2 + term3
             testINTS[i] = [term1, term2, term3]
         
-        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(k), thetaVals)
+        np.savetxt(filename, thetaVals)
         
         np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
         return
