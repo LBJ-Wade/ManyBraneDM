@@ -41,14 +41,17 @@ class CMB(object):
         self.ThetaTabTot[0,:] = ell_val
 
         self.fill_inx = 0
-        
-        
-    
     
     def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=False):
         
-        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        if compute_MPS:
+            self.kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        else:
+            self.kgrid = np.linspace(self.kmin, self.kmax, self.knum)
+        
+        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        
         if compute_LP:
             print 'Computing Perturbation Fields...\n'
             self.kspace_linear_pert(kVAL)
@@ -59,7 +62,7 @@ class CMB(object):
             if kVAL is not None:
                 self.theta_integration(kVAL, kVAL=kVAL)
             else:
-                for k in kgrid:
+                for k in self.kgrid:
                     self.theta_integration(k)
 
         if compute_CMB:
@@ -87,9 +90,12 @@ class CMB(object):
         return
 
     def kspace_linear_pert(self, kVAL=None):
-        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        
         if kVAL is not None:
             kgrid = [kVAL]
+        else:
+            kgrid = self.kgrid
         for k in kgrid:
             fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
@@ -110,37 +116,49 @@ class CMB(object):
 
     def theta_integration(self, k, kVAL=None):
         if kVAL is not None:
-            kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-            index = np.where(kgrid == kVAL)[0][0] + 1
+            #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+            index = np.where(self.kgrid == kVAL)[0][0] + 1
         ell_tab = self.ThetaTabTot[0,:]
+        eta_full = np.logspace(-1, np.log10(self.eta0), 4000)
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         theta0 = fields[:,6]
         psi = fields[:,-1]
         vb = fields[:,5]
         
-        #theta0 = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='linear', bounds_error=False, fill_value=0.)
-        #psi = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='linear', bounds_error=False, fill_value=0.)
-        #vb = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='linear', bounds_error=False, fill_value=0.)
+        theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='linear', bounds_error=False, fill_value=0.)(np.log10(eta_full))
+        psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='linear', bounds_error=False, fill_value=0.)(np.log10(eta_full))
+        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='linear', bounds_error=False, fill_value=0.)(np.log10(eta_full))
+        
         phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
 
         thetaVals = np.zeros(len(ell_tab))
+        testINTS = np.zeros((len(ell_tab), 3))
+        
         e_vals = fields[:,0]
         
         for i,ell in enumerate(ell_tab):
             # Using Eq 8.55 Dodelson
-            jvalL = spherical_jn(int(ell), k*(self.eta0 - e_vals))
-            diffJval = spherical_jn(int(ell), k*(self.eta0 - e_vals), derivative=True)
+            jvalL = spherical_jn(int(ell), k*(self.eta0 - eta_full))
+            diffJval = spherical_jn(int(ell), k*(self.eta0 - eta_full), derivative=True)
            
-            term1 = np.trapz(self.visibility(e_vals)*(theta0 + psi)*jvalL , e_vals)
-            term2 = -np.trapz(self.visibility(e_vals)*vb/k*diffJval, e_vals)
-            term3 = np.trapz(self.exp_opt_depth(e_vals)* (psi_dot(np.log10(e_vals)) - phi_dot(np.log10(e_vals)))*jvalL, e_vals)
+#            term1 = np.trapz(self.visibility(eta_full)*(theta0_I + psi_I)*jvalL , eta_full)
+#            term2 = -np.trapz(self.visibility(eta_full)*vb_I/k*diffJval, eta_full)
+#            term3 = np.trapz(self.exp_opt_depth(eta_full)* (psi_dot(np.log10(eta_full)) - phi_dot(np.log10(eta_full)))*jvalL, eta_full)
+            term1 = np.trapz(self.visibility(eta_full)*(theta0_I + psi_I) , eta_full)
+            term2 = -np.trapz(self.visibility(eta_full)*vb_I/k, eta_full)
+            term3 = np.trapz(self.exp_opt_depth(eta_full)* (psi_dot(np.log10(eta_full)) - phi_dot(np.log10(eta_full))), eta_full)
+
             thetaVals[i] = term1 + term2 + term3
+            testINTS[i] = [term1, term2, term3]
+        
         np.savetxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(k), thetaVals)
+        
+        np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
         return
     
-    def SaveThetaFile(self):
+    def SaveThetaFile(self, test=True):
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
         ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
@@ -149,17 +167,25 @@ class CMB(object):
             self.ThetaTabTot[i+1,:] = dat
             os.remove(ThetaFiles[i])
         np.savetxt(self.ThetaFile, self.ThetaTabTot)
+        
+        if test:
+            #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+            np.savetxt(path + '/OutputFiles/TESTING_THETA.dat', np.column_stack((self.kgrid, self.ThetaTabTot[1:,:])))
+        return
 
     def computeCMB(self):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         thetaTab = np.loadtxt(ThetaFile)
-        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
         for i,ell in enumerate(ell_tab):
-            cL = np.trapz(100.*np.pi/(9.*kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2. , kgrid)
-            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cL*GF]
+            #cL = np.trapz(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2. , self.kgrid)
+            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='linear')
+            CLint = quad(lambda x: 10.**cL_interp(np.log10(x)), self.kgrid[0], self.kgrid[-1])
+            #CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*cL*GF]
+            CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
 
         np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
         return
@@ -184,19 +210,19 @@ class CMB(object):
         # T(k) = \Phi(k, a=1) / \Phi(k = Large, a= 1)
         # P(k,a=1) = 2 pi^2 * \delta_H^2 * k / H_0^4 * T(k)^2
         Tktab = self.TransferFuncs()
-        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        PS = np.zeros_like(kgrid)
-        for i,k in enumerate(kgrid):
+        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        PS = np.zeros_like(self.kgrid)
+        for i,k in enumerate(self.kgrid):
             PS[i] = k*Tktab[i]**2.
-        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((kgrid, PS)))
+        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((self.kgrid, PS)))
         return
 
     def TransferFuncs(self):
         Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(self.kmin))
         LargeScaleVal = Minfields[-1, 1]
-        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        Tktab = np.zeros_like(kgrid)
-        for i,k in enumerate(kgrid):
+        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
+        Tktab = np.zeros_like(self.kgrid)
+        for i,k in enumerate(self.kgrid):
             field =  np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
             Tktab[i] = field[-1,1] / LargeScaleVal
         return Tktab

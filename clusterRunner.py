@@ -12,11 +12,12 @@ compute_LP = True
 compute_TH = True
 compute_CMB = True
 compute_MPS = False
+# Note, don't copute MPS and CMB at same time. This requires different kgrid...
 
-kmin = 1e-3
-kmax = 1e-1
-knum = 2000
-lmax = 2500
+kmin = 1e-2
+kmax = 5e-1
+knum = 40
+lmax = 500
 lvals = 10 # Doesnt do anything right now
 
 OM_b = 0.0484
@@ -24,8 +25,10 @@ OM_c = 0.258
 OM_g = 5.38e-5
 OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 
-
-kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
+if compute_MPS:
+    kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
+else:
+    kgrid = np.linspace(kmin, kmax, knum)
 
 def CMB_wrap(kval):
     SetCMB.runall(kVAL=kval, compute_LP=compute_LP, compute_TH=compute_TH,
