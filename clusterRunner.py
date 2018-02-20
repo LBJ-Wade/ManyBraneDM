@@ -14,10 +14,16 @@ compute_CMB = True
 compute_MPS = False
 # Note, don't copute MPS and CMB at same time. This requires different kgrid...
 
-kmin = 1e-2
-kmax = 5e-1
-knum = 40
-lmax = 500
+if compute_MPS:
+    kmin = 1e-3
+    kmax = 10.
+    knum = 100
+else:
+    kmin = 1e-2
+    kmax = 5e-1
+    knum = 5000
+
+lmax = 2500
 lvals = 10 # Doesnt do anything right now
 
 OM_b = 0.0484
