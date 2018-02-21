@@ -163,6 +163,7 @@ class CMB(object):
         return
     
     def SaveThetaFile(self, test=True):
+        kgrid = np.linspace(self.kmin, self.kmax, self.knum)
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
         ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
@@ -174,7 +175,7 @@ class CMB(object):
         
         if test:
             #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-            np.savetxt(path + '/OutputFiles/TESTING_THETA.dat', np.column_stack((self.kgrid, self.ThetaTabTot[1:,:])))
+            np.savetxt(path + '/OutputFiles/TESTING_THETA.dat', np.column_stack((kgrid, self.ThetaTabTot[1:,:])))
         return
 
     def computeCMB(self):
