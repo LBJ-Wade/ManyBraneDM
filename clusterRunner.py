@@ -6,12 +6,12 @@ from CMB import *
 Ftag = 'StandardUniverse'
 lmax_Pert = 100
 
-process_Num = None
+process_Num = 15
 
 compute_LP = True
-compute_TH = True
-compute_CMB = True
-compute_MPS = False
+compute_TH = False
+compute_CMB = False
+compute_MPS = True
 # Note, don't copute MPS and CMB at same time. This requires different kgrid...
 
 if compute_MPS:

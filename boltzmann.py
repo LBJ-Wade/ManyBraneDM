@@ -152,7 +152,8 @@ class Universe(object):
             if self.step%3000 == 0:
                 print 'Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1]))
             if ((y_diff > eta_use*np.exp(y_use)*self.hubble(np.exp(y_use))) or
-                (y_diff > np.exp(y_use)*self.hubble(np.exp(y_use))/self.k)):
+                (y_diff > np.max([np.exp(y_use)*self.hubble(np.exp(y_use)),
+                                  np.exp(y_use)*self.hubble(np.exp(y_use))/self.k]))):
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
