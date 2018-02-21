@@ -158,11 +158,10 @@ class CMB(object):
             testINTS[i] = [term1, term2, term3]
         
         np.savetxt(filename, thetaVals)
-        
-        np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
+        #np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
         return
     
-    def SaveThetaFile(self, test=True):
+    def SaveThetaFile(self, test=False):
         kgrid = np.linspace(self.kmin, self.kmax, self.knum)
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
