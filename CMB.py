@@ -14,12 +14,22 @@ class CMB(object):
 
     def __init__(self, OM_b, OM_c, OM_g, OM_L, kmin=5e-3, kmax=0.5, knum=200,
                  lmax=2500, lvals=250,
-                 Ftag='StandardUniverse', lmax_Pert=5):
+                 Ftag='StandardUniverse', lmax_Pert=5, multiverse=False,
+                 OM_b2=0., OM_c2=0., OM_g2=0., OM_L2=0., Nbrane=0):
+        
         self.OM_b = OM_b
         self.OM_c = OM_c
         self.OM_g = OM_g
         self.OM_L = OM_L
         self.OM_nu = (7./8)*(4./11.)**(4./3)*3.04 * OM_g
+
+        self.OM_b2 = OM_b2
+        self.OM_c2 = OM_c2
+        self.OM_g2 = OM_g2
+        self.OM_L2 = OM_L2
+        self.OM_nu2 = (7./8)*(4./11.)**(4./3)*3.04 * OM_g2
+        self.Nbrane = Nbrane
+        
         self.kmin = kmin
         self.kmax = kmax
         self.knum = knum
@@ -30,6 +40,7 @@ class CMB(object):
         self.lmax_Pert = lmax_Pert
         self.lmin = 10
         
+        self.multiverse=multiverse
         
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
@@ -105,8 +116,14 @@ class CMB(object):
             while not success:
                 print 'Working on k = {:.3e}, step size = {:.3e}'.format(k, stepsize)
                 try:
-                    SingleUni = Universe(k, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu,
-                                         stepsize=stepsize, accuracy=1e-3, lmax=self.lmax_Pert).solve_system()
+                    if not self.multiverse:
+                        SingleUni = Universe(k, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu,
+                                             stepsize=stepsize, accuracy=1e-3, lmax=self.lmax_Pert).solve_system()
+                    else:
+                        ManyBrane_Universe(self.Nbrane, k, [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
+                                          [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
+                                          [self.OM_nu, self.OM_nu2], accuracy=1e-3,
+                                          stepsize=stepsize, lmax=self.lmax_Pert).solve_system()
                     success = True
                 except ValueError:
                     stepsize /= 2.

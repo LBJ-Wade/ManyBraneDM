@@ -431,11 +431,6 @@ class ManyBrane_Universe(object):
         
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
-        if omega_b[1]/omega_b[0] > 1:
-            print 'Too much baryonic matter on a dark brane...'
-            print '{:.3f} needs to be less than 1.0'.format(omega_b[1]/omega_b[0])
-            exit()
-        
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.eta_0 = 1.4100e4 #1.4135e+04
 
