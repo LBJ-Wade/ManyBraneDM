@@ -611,7 +611,9 @@ class ManyBrane_Universe(object):
             self.step_solver()
     
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
-            if np.abs(test_epsilon) > self.accuracy and self.step > 10:
+            #print test_epsilon
+            if np.abs(test_epsilon) > 1 and self.step > 10:
+            #if np.abs(test_epsilon) > self.accuracy and self.step > 10:
                 #print np.exp(y_use)
                 raise ValueError
                 self.stepsize *= 0.5
@@ -1070,7 +1072,6 @@ class ManyBrane_Universe(object):
         denom = (self.omega_M_T*a**-3. + self.omega_R_T*a**-4. + self.omega_L_T)
         
         phiTerm = -2./3.*(self.k/(a*self.H_0))**2.*self.combined_vector[0][-1]
-        
         denTerm = (self.omega_cdm[0]*self.combined_vector[1][-1]+self.omega_b[0]*self.combined_vector[3][-1])*a**-3. +\
                   4.*(self.omega_g[0]*self.combined_vector[5][-1]+self.omega_nu[0]*self.combined_vector[7][-1])*a**-4.
         denTerm_D = (self.omega_cdm[1]*self.combined_vector[self.TotalVars][-1]+

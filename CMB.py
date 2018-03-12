@@ -111,7 +111,7 @@ class CMB(object):
             fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
                 continue
-            stepsize = 0.1
+            stepsize = 0.01
             success = False
             while not success:
                 print 'Working on k = {:.3e}, step size = {:.3e}'.format(k, stepsize)
