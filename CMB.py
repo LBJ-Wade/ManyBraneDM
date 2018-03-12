@@ -238,7 +238,10 @@ class CMB(object):
         PS = np.zeros_like(self.kgrid)
         for i,k in enumerate(self.kgrid):
             PS[i] = k*Tktab[i]**2.
-        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((self.kgrid, PS)))
+        if self.multiverse:
+            np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum_Nbrane_{:.0f}.dat'.format(self.Nbrane), np.column_stack((self.kgrid, PS)))
+        else:
+            np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((self.kgrid, PS)))
         return
 
     def TransferFuncs(self):
