@@ -242,7 +242,10 @@ class CMB(object):
         return
 
     def TransferFuncs(self):
-        Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(self.kmin))
+        if self.multiverse:
+            Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(self.kmin, self.Nbrane))
+        else:
+            Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(self.kmin))
         LargeScaleVal = Minfields[-1, 1]
         #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         Tktab = np.zeros_like(self.kgrid)
