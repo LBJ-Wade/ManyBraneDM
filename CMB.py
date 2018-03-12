@@ -108,7 +108,10 @@ class CMB(object):
         else:
             kgrid = self.kgrid
         for k in kgrid:
-            fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
+            if self.multiverse:
+                fileName = path + '/OutputFiles/Multiverse_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(k, self.Nbrane)
+            else:
+                fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
                 continue
             stepsize = 0.01
