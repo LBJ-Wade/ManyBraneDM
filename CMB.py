@@ -245,7 +245,7 @@ class CMB(object):
         Tktab = np.zeros_like(self.kgrid)
         for i,k in enumerate(self.kgrid):
             if self.multiverse:
-                field =  np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(k, self.Nbrane))
+                field =  np.loadtxt(path + '/OutputFiles/Multiverse_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(k, self.Nbrane))
             else:
                 field =  np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
             Tktab[i] = field[-1,1] / LargeScaleVal
