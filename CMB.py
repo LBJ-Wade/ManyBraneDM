@@ -167,12 +167,10 @@ class CMB(object):
             jvalL = spherical_jn(int(ell), k*(self.eta0 - eta_full))
             diffJval = spherical_jn(int(ell), k*(self.eta0 - eta_full), derivative=True)
            
-#            term1 = np.trapz(self.visibility(eta_full)*(theta0_I + psi_I)*jvalL , eta_full)
-#            term2 = -np.trapz(self.visibility(eta_full)*vb_I/k*diffJval, eta_full)
-#            term3 = np.trapz(self.exp_opt_depth(eta_full)* (psi_dot(np.log10(eta_full)) - phi_dot(np.log10(eta_full)))*jvalL, eta_full)
-            term1 = np.trapz(self.visibility(eta_full)*(theta0_I + psi_I) , eta_full)
-            term2 = -np.trapz(self.visibility(eta_full)*vb_I/k, eta_full)
-            term3 = np.trapz(self.exp_opt_depth(eta_full)* (psi_dot(np.log10(eta_full)) - phi_dot(np.log10(eta_full))), eta_full)
+            term1 = np.trapz(self.visibility(eta_full)*(theta0_I + psi_I)*jvalL , eta_full)
+            term2 = -np.trapz(self.visibility(eta_full)*vb_I/k*diffJval, eta_full)
+            term3 = np.trapz(self.exp_opt_depth(eta_full)* (psi_dot(np.log10(eta_full)) - phi_dot(np.log10(eta_full)))*jvalL, eta_full)
+
 
             thetaVals[i] = term1 + term2 + term3
             testINTS[i] = [term1, term2, term3]

@@ -229,7 +229,6 @@ class Universe(object):
             self.xeLIST.append(self.xe_deta(a_val))
         
         tflip_TCA = 1e-4
-        tflip_HO = 1e-5
         
         PsiTerm = np.zeros(self.TotalVars)
         PsiTerm[0] = -1.
@@ -428,6 +427,9 @@ class ManyBrane_Universe(object):
         self.omega_g = omega_g
         self.omega_nu = omega_nu
         self.Nbrane = Nbrane
+        
+        #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
+        
         
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
@@ -674,7 +676,7 @@ class ManyBrane_Universe(object):
         
         Rfac = (3.*self.omega_b[0]*a_val)/(4.*self.omega_g[0])
         RR = (4.*self.omega_g[0])/(3.*self.omega_b[0]*a_val)
-        Rfac_D = (3.*self.omega_b[1]*a_val)/(4.*self.omega_g[1])
+        #Rfac_D = (3.*self.omega_b[1]*a_val)/(4.*self.omega_g[1])
         RR_D = (4.*self.omega_g[1])/(3.*self.omega_b[1]*a_val)
         
         Yp = 0.245
@@ -698,7 +700,8 @@ class ManyBrane_Universe(object):
             self.dtauD_LIST.append(dTa_D)
             self.xeD_LIST.append(xeDk)
         
-        tflip_TCA = 1e-6
+        #tflip_TCA = 1e-4
+        tflip_TCA = 1e-11
         
         PsiTerm = np.zeros(2*self.TotalVars-1)
         PsiTerm[0] = -1.
@@ -756,10 +759,10 @@ class ManyBrane_Universe(object):
             Jma[4,3] += self.k * CsndB / (HUB * a_val)
             Jma[4,8] += -3.*dTa / (Rfac * HUB * a_val)
         
-            Jma[self.TotalVars+3,self.TotalVars+3] += -1. + dTa_D / (Rfac_D*HUB*a_val)
+            Jma[self.TotalVars+3,self.TotalVars+3] += -1. + dTa_D / (HUB*a_val) * RR_D
             Jma[self.TotalVars+3,:] += self.k/(HUB*a_val)*PsiTerm
             Jma[self.TotalVars+3,self.TotalVars+2] += self.k * CsndB_D / (HUB * a_val)
-            Jma[self.TotalVars+3,self.TotalVars+7] += -3.*dTa_D / (Rfac_D * HUB * a_val)
+            Jma[self.TotalVars+3,self.TotalVars+7] += -3.*dTa_D / (HUB * a_val) * RR_D
         
         else:
             Jma[4,4] += -1./(1.+RR) + 2.*(RR/(1.+RR))**2. + 2.*RR*HUB*a_val/\
@@ -988,7 +991,6 @@ class ManyBrane_Universe(object):
                                    bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
         
         self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
-        #np.savetxt(path + '/precomputed/TEST_XeCURVE.dat', self.Xe_dark)
         self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
         return
     

@@ -4,7 +4,7 @@ from CMB import *
 #from multiprocessing import Pool
 
 Multiverse = True
-Nbranes = 100
+Nbranes = 1e8
 
 if not Multiverse:
     Ftag = 'StandardUniverse'
@@ -18,7 +18,7 @@ if not Multiverse:
     OM_g2 = 0.
     OM_L2 = 0.
 else:
-    Ftag = 'Multiverse_Nbrane_{:.0f}'.format(Nbranes)
+    Ftag = 'MultiBrane'
     omega_cdm = 0.258
 
     OM_b =  0.0484
@@ -29,11 +29,12 @@ else:
     # if you want fixed omega_g / omega_b on other branes...
     OM_b2 =  omega_cdm/Nbranes
     OM_c2 = 0.
-    OM_g2 = (OM_g/OM_b)*(omega_cdm/Nbranes)
+    #OM_g2 = (OM_g/OM_b)*(omega_cdm/Nbranes)
+    OM_g2 = 1e-20
     OM_L2 = 0.
 
 
-lmax_Pert = 100
+lmax_Pert = 10
 process_Num = 15
 
 compute_LP = True
