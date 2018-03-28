@@ -613,17 +613,10 @@ class ManyBrane_Universe(object):
             self.step_solver()
     
             test_epsilon = self.epsilon_test(np.exp(self.y_vector[-1]))
-            #print test_epsilon
-            if np.abs(test_epsilon) > 1 and self.step > 10:
-            #if np.abs(test_epsilon) > self.accuracy and self.step > 10:
-                #print np.exp(y_use)
-                raise ValueError
-                self.stepsize *= 0.5
-                self.eta_vector.pop()
-                self.y_vector.pop()
-                #print 'Failed epsilon test...   Value: {:.3e}'.format(test_epsilon)
-                try_count += 1
-                continue
+#            print test_epsilon
+#            if np.abs(test_epsilon) > 10 and self.step > 10:
+#                raise ValueError
+#                continue
             self.step += 1
             if (np.abs(test_epsilon) < 1e-4*self.accuracy) and not last_step_up:
                 self.stepsize *= 1.25
@@ -683,6 +676,7 @@ class ManyBrane_Universe(object):
         n_b = 2.503e-7
         dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
         # Note: If you want to change \omega_b / \omega_g you need to modify this function
+        # namely modify bbn and thus Yp
         xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
         dTa_D = -xeDk*(1.-Yp)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
