@@ -430,6 +430,7 @@ class ManyBrane_Universe(object):
         
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         
+        self.yp_prime = 0.2262 + 0.0135*np.ln(self.omega_b[1]/self.omega_b[0]*6.25)
         #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
         
         
@@ -677,10 +678,9 @@ class ManyBrane_Universe(object):
         Yp = 0.245
         n_b = 2.503e-7
         dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
-        # Note: If you want to change \omega_b / \omega_g you need to modify this function
-        # namely modify bbn and thus Yp
+       
         xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
-        dTa_D = -xeDk*(1.-Yp)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
+        dTa_D = -xeDk*(1.-self.yp_prime)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
         CsndB = self.Csnd(a_val)
         CsndB_D = self.Cs_Sqr_Dark(a_val)
@@ -950,7 +950,7 @@ class ManyBrane_Universe(object):
     def dotT(self, T, y):
         kb = 8.617e-5/1e9 # Gev/K
         aval = np.exp(y)
-        Yp = 0.245
+        Yp = self.yp_prime
         Mpc_to_cm = 3.086e24
         mol_wei = 0.92513*0.938 # not entirely sure about this number
         n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
@@ -1004,7 +1004,7 @@ class ManyBrane_Universe(object):
         Mpc_to_cm = 3.086e24
         me = 5.11e-4 # GeV
         aval = 2.7255 * kb * y / ep0
-        Yp=0.245
+        Yp=self.yp_prime
         if hydrogen:
             n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
         else:
