@@ -428,6 +428,8 @@ class ManyBrane_Universe(object):
         self.omega_nu = omega_nu
         self.Nbrane = Nbrane
         
+        self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
+        
         #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
         
         
@@ -1102,10 +1104,12 @@ class ManyBrane_Universe(object):
         sve_tab[:,-1] = psi_term
         for i in range(2*self.TotalVars-1):
             sve_tab[:,i+1] = self.combined_vector[i]
-        np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(self.k, self.Nbrane), sve_tab, fmt='%.8e', delimiter='    ')
+        np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_' +
+                  '{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(self.k, self.Nbrane, self.PressureFac),
+                  sve_tab, fmt='%.8e', delimiter='    ')
         
         if self.testing:
-            np.savetxt(path+'/OutputFiles/MultiBrane_Background_Nbranes_{:.0f}.dat'.format(self.Nbrane),
+            np.savetxt(path+'/OutputFiles/MultiBrane_Background_Nbranes_{:.0e}_PressFac_{:.2e}.dat'.format(self.Nbrane, self.PressureFac),
                         np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST,
                                          self.dtauLIST, self.xeD_LIST, self.csD_LIST, self.dtauD_LIST)))
         return
