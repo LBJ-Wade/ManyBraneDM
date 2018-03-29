@@ -430,7 +430,7 @@ class ManyBrane_Universe(object):
         
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         
-        self.yp_prime = 0.2262 + 0.0135*np.ln(self.omega_b[1]/self.omega_b[0]*6.25)
+        self.yp_prime = 0.2262 + 0.0135*np.log(self.omega_b[1]/self.omega_b[0]*6.25)
         #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
         
         
