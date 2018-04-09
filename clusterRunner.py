@@ -3,7 +3,7 @@ import os
 from CMB import *
 #from multiprocessing import Pool
 
-Multiverse = True
+Multiverse = False
 Nbranes = 1e7
 
 if not Multiverse:
@@ -33,23 +33,23 @@ else:
     OM_L2 = 0.
 
 
-lmax_Pert = 100
+lmax_Pert = 10
 process_Num = 15
 
-compute_LP = True
-compute_TH = False
-compute_CMB = False
-compute_MPS = True
+compute_LP = False
+compute_TH = True
+compute_CMB = True
+compute_MPS = False
 # Note, don't copute MPS and CMB at same time. This requires different kgrid...
 
 if compute_MPS:
     kmin = 1e-3
     kmax = 1.
-    knum = 50
+    knum = 100
 else:
-    kmin = 1e-2
+    kmin = 1e-3
     kmax = 5e-1
-    knum = 5000
+    knum = 1000
 
 lmax = 2500
 lvals = 10 # Doesnt do anything right now
@@ -58,7 +58,8 @@ lvals = 10 # Doesnt do anything right now
 if compute_MPS:
     kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
 else:
-    kgrid = np.linspace(kmin, kmax, knum)
+    #kgrid = np.linspace(kmin, kmax, knum)
+    kgrid = np.logspace(np.log10(kmin), np.log10(kmax), knum)
 
 def CMB_wrap(kval):
     SetCMB.runall(kVAL=kval, compute_LP=compute_LP, compute_TH=compute_TH,

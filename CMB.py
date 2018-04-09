@@ -63,8 +63,8 @@ class CMB(object):
         if compute_MPS:
             self.kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         else:
-            self.kgrid = np.linspace(self.kmin, self.kmax, self.knum)
-        
+            #self.kgrid = np.linspace(self.kmin, self.kmax, self.knum)
+            self.kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         
         if compute_LP:
@@ -182,18 +182,18 @@ class CMB(object):
                            spherical_jn(int(ell), k*(self.eta0 - x)), 1e2, self.eta0, limit=200)[0]
             
             # Approx dodelson 8.56 (TRY #2)
-            peakVis = minimize(lambda x: - self.visibility(x), [250.])
-            peaketa = peakVis.x
-            term1 = (theta0_I(np.log10(peaketa)) + psi_I(np.log10(peaketa))) * spherical_jn(int(ell), k*(self.eta0 - peaketa))
-            term2 = 3.*theta1_I(np.log10(peaketa))*(spherical_jn(int(ell-1), k*(self.eta0 - peaketa)) - (ell+1)*spherical_jn(int(ell), k*(self.eta0 - peaketa))/(k*(self.eta0 - peaketa)))
+#            peakVis = minimize(lambda x: - self.visibility(x), [250.])
+#            peaketa = peakVis.x
+#            term1 = (theta0_I(np.log10(peaketa)) + psi_I(np.log10(peaketa))) * spherical_jn(int(ell), k*(self.eta0 - peaketa))
+#            term2 = 3.*theta1_I(np.log10(peaketa))*(spherical_jn(int(ell-1), k*(self.eta0 - peaketa)) - (ell+1)*spherical_jn(int(ell), k*(self.eta0 - peaketa))/(k*(self.eta0 - peaketa)))
 
             # Terms from Mirror DM paper  (TRY #3)
-#            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
-#                         PiPolar(np.log10(x))/10. + 3./(4*k**2.)*DerTerm(np.log10(x)))* spherical_jn(int(ell), k*(self.eta0 - x)),
-#                         1e2, 1e3, limit=200)[0]
-#            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
-#                         (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
-#                         , 1e2, 1e3, limit=200)[0]
+            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
+                         PiPolar(np.log10(x))/10. + 3./(4*k**2.)*DerTerm(np.log10(x)))* spherical_jn(int(ell), k*(self.eta0 - x)),
+                         1e2, 1e3, limit=200)[0]
+            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
+                         (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
+                         , 1e2, 1e3, limit=200)[0]
 
             thetaVals[i] = term1 + term2 + term3
             
@@ -206,7 +206,8 @@ class CMB(object):
         return
     
     def SaveThetaFile(self, test=False):
-        kgrid = np.linspace(self.kmin, self.kmax, self.knum)
+        #kgrid = np.linspace(self.kmin, self.kmax, self.knum)
+        kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
         ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
