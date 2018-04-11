@@ -157,12 +157,12 @@ class CMB(object):
         psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
         vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
         
-#        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 10] + fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
-#        pre_2nd_derTerm = PiPolar(np.log10(fields[:,0]))*self.visibility(fields[:,0])
-#        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
-#        for i in range(len(disc_2nd_derTerm) - 2):
-#            sec_DerTerm[i] = pre_2nd_derTerm[i+2] - 2.*pre_2nd_derTerm[i+1] + pre_2nd_derTerm[i]
-#        DerTerm = interp1d(np.log10(fields[1:-2]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
+        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 10] + fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
+        pre_2nd_derTerm = PiPolar(np.log10(fields[:,0]))*self.visibility(fields[:,0])
+        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
+        for i in range(len(disc_2nd_derTerm) - 2):
+            sec_DerTerm[i] = pre_2nd_derTerm[i+2] - 2.*pre_2nd_derTerm[i+1] + pre_2nd_derTerm[i]
+        DerTerm = interp1d(np.log10(fields[1:-2]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
         phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
