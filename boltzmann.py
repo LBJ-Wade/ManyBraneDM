@@ -967,19 +967,19 @@ class ManyBrane_Universe(object):
         csSq = 2.998e8**2.
         return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
     
-    def xeDark_Tab(self):
+    def xeDark_Tab(self, tcmbD=2.7255):
         print 'Calculating Dark Free Electron Fraction'
         x0 = 1.
-        yvals = np.logspace(0., np.log10(13.6/(2.7255*8.617e-5)), 500)
+        yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 500)
         solvR = odeint(self.xeDiff, x0, yvals)
-        x0Convert = yvals*2.7255*8.617e-5/13.6
+        x0Convert = yvals*tcmbD*8.617e-5/13.6
         
-        yvals1 = np.logspace(0., np.log10(54.4/(2.7255*8.617e-5)), 500)
+        yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 500)
         solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
-        x0Convert1 = yvals1*2.7255*8.617e-5/54.4
-        yvals2 = np.logspace(0., np.log10(24.6/(2.7255*8.617e-5)), 500)
+        x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
+        yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 500)
         solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
-        x0Convert2 = yvals2*2.7255*8.617e-5/24.6
+        x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
         
         he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
                                    bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
@@ -990,7 +990,7 @@ class ManyBrane_Universe(object):
         self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
         return
     
-    def xeDiff(self, val, y, hydrogen=True, first=True):
+    def xeDiff(self, val, y, hydrogen=True, first=True, tcmbD=2.7255):
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
         else:
@@ -1003,14 +1003,14 @@ class ManyBrane_Universe(object):
         GeV_cm = 5.06e13
         Mpc_to_cm = 3.086e24
         me = 5.11e-4 # GeV
-        aval = 2.7255 * kb * y / ep0
+        aval = tcmbD * kb * y / ep0
         Yp=self.yp_prime
         if hydrogen:
             n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
         else:
             n_b = 2.503e-7 / aval**3. * Yp * self.omega_b[1]/self.omega_b[0]
     
-        Tg = 2.7255 / aval * kb # GeV
+        Tg = tcmbD / aval * kb # GeV
         hub = self.hubble(aval)
         FScsnt = 7.297e-3
         
