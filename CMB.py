@@ -215,7 +215,7 @@ class CMB(object):
             dat = np.loadtxt(ThetaFiles[i])
             self.ThetaTabTot[i+1,:] = dat
             os.remove(ThetaFiles[i])
-        np.savetxt(self.ThetaFile, self.ThetaTabTot)
+        np.savetxt(self.ThetaFile, self.ThetaTabTot, fmt='%.4e')
         
         if test:
             #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
