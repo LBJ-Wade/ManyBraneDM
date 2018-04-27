@@ -90,16 +90,16 @@ class CMB(object):
     
     def loadfiles(self):
         opt_depthL = np.loadtxt(path + '/precomputed/expOpticalDepth.dat')
-        self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='linear',
+        self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
                                   bounds_error=False, fill_value='extrapolate')
         time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
+        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='cubic',
                                     bounds_error=False, fill_value='extrapolate')
-        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
+        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='cubic',
                                     bounds_error=False, fill_value='extrapolate')
         visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
         visfunc = np.log10(visfunc[visfunc[:,1] > 0.])
-        self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='linear',
+        self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic',
                                   bounds_error=False, fill_value=-100.)
         self.eta_start = 10.**self.scale_to_ct(visfunc[-1,0])
         return
@@ -152,20 +152,20 @@ class CMB(object):
         
         fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
         
-        theta0_I = interp1d(fields[:,0], fields[:, 6], kind='linear', bounds_error=False, fill_value=0.)
-        theta1_I = interp1d(fields[:,0], fields[:, 9], kind='linear', bounds_error=False, fill_value=0.)
-        psi_I = interp1d(fields[:,0], fields[:, -1], kind='linear', bounds_error=False, fill_value=0.)
-        vb_I = interp1d(fields[:,0], fields[:, 5], kind='linear', bounds_error=False, fill_value=0.)
+        theta0_I = interp1d(fields[:,0], fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
+        theta1_I = interp1d(fields[:,0], fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
+        psi_I = interp1d(fields[:,0], fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
+        vb_I = interp1d(fields[:,0], fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
         
-        PiPolar = interp1d(fields[:,0], fields[:, 7] + fields[:, 10] + fields[:, 9], kind='linear', bounds_error=False, fill_value=0.)
+        PiPolar = interp1d(fields[:,0], fields[:, 7] + fields[:, 10] + fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
         pre_2nd_derTerm = (fields[:, 7] + fields[:, 10] + fields[:, 9])*self.visibility(fields[:,0])
         sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
         for i in range(len(pre_2nd_derTerm) - 2):
             sec_DerTerm[i] = pre_2nd_derTerm[i+2] - 2.*pre_2nd_derTerm[i+1] + pre_2nd_derTerm[i]
-        DerTerm = interp1d(fields[:,0][1:-1], sec_DerTerm, kind='linear', bounds_error=False, fill_value=0.)
+        DerTerm = interp1d(fields[:,0][1:-1], sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
-        phi_dot = interp1d(fields[1:,0], np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
-        psi_dot = interp1d(fields[1:,0], np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='linear', bounds_error=False, fill_value=0.)
+        phi_dot = interp1d(fields[1:,0], np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+        psi_dot = interp1d(fields[1:,0], np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
 
         thetaVals = np.zeros(len(ell_tab))
         testINTS = np.zeros((len(ell_tab), 3))
@@ -230,7 +230,7 @@ class CMB(object):
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
         for i,ell in enumerate(ell_tab):
-            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='linear', fill_value=-30)
+            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
             CLint = quad(lambda x: 10.**cL_interp(np.log10(x)), self.kgrid[0], self.kgrid[-1])
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
