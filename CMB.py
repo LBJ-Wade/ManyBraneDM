@@ -179,7 +179,7 @@ class CMB(object):
 #            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*
 #                          spherical_jn(int(ell), k*(self.eta0 - x), derivative=True), 1e2, 1e3, limit=200)[0]
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(x) - phi_dot(x))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), 1e2, self.eta0, limit=200)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), 1e2, self.eta0, limit=50)[0]
             
             # Approx dodelson 8.56 (TRY #2)
 #            peakVis = minimize(lambda x: - self.visibility(x), [250.])
@@ -190,10 +190,10 @@ class CMB(object):
             # Terms from Mirror DM paper  (TRY #3)
             term1 = quad(lambda x: self.visibility(x)*(theta0_I(x) + psi_I(x) +
                          PiPolar(x)/10. + 3./(4*k**2.)*DerTerm(x))* spherical_jn(int(ell), k*(self.eta0 - x)),
-                         1e2, 1e3, limit=200)[0]
+                         1e2, 1e3, limit=50)[0]
             term2 = quad(lambda x: self.visibility(x)*vb_I(x)*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
                          (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
-                         , 1e2, 1e3, limit=200)[0]
+                         , 1e2, 1e3, limit=50)[0]
 
             thetaVals[i] = term1 + term2 + term3
             
