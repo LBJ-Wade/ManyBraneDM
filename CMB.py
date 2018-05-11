@@ -161,7 +161,9 @@ class CMB(object):
         pre_2nd_derTerm = (fields[:, 7] + fields[:, 10] + fields[:, 9])*self.visibility(fields[:,0])
         sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
         for i in range(len(pre_2nd_derTerm) - 2):
-            sec_DerTerm[i] = pre_2nd_derTerm[i+2] - 2.*pre_2nd_derTerm[i+1] + pre_2nd_derTerm[i]
+            h2 = fields[i+2,0] - fields[i+1, 0]
+            h1 = fields[i+1,0] - fields[i, 0]
+            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
         DerTerm = interp1d(fields[:,0][1:-1], sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
         phi_dot = interp1d(fields[1:,0], np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
@@ -179,7 +181,7 @@ class CMB(object):
 #            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*
 #                          spherical_jn(int(ell), k*(self.eta0 - x), derivative=True), 1e2, 1e3, limit=200)[0]
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(x) - phi_dot(x))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), 1e2, self.eta0, limit=50)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), 1e2, self.eta0, limit=20)[0]
             
             # Approx dodelson 8.56 (TRY #2)
 #            peakVis = minimize(lambda x: - self.visibility(x), [250.])
@@ -190,10 +192,10 @@ class CMB(object):
             # Terms from Mirror DM paper  (TRY #3)
             term1 = quad(lambda x: self.visibility(x)*(theta0_I(x) + psi_I(x) +
                          PiPolar(x)/10. + 3./(4*k**2.)*DerTerm(x))* spherical_jn(int(ell), k*(self.eta0 - x)),
-                         1e2, 1e3, limit=50)[0]
+                         1e2, 1e3, limit=20)[0]
             term2 = quad(lambda x: self.visibility(x)*vb_I(x)*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
                          (ell+1)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
-                         , 1e2, 1e3, limit=50)[0]
+                         , 1e2, 1e3, limit=20)[0]
 
             thetaVals[i] = term1 + term2 + term3
             
