@@ -218,8 +218,9 @@ class CMB(object):
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
         for i,ell in enumerate(ell_tab):
-            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
-            CLint = quad(lambda x: 10.**cL_interp(np.log10(x)), self.kgrid[0], self.kgrid[-1])
+#            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
+            cL_interp = interp1d(self.kgrid, 100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2., kind='cubic', fill_value=0.)
+            CLint = quad(lambda x: cL_interp(x), self.kgrid[0], self.kgrid[-1])
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
                 print i, ell
