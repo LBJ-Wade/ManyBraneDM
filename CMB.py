@@ -176,10 +176,10 @@ class CMB(object):
         
         for i,ell in enumerate(ell_tab):
             term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) + PiPolar(np.log10(x))*0.25 + 3./(4.*k**2.)*DerTerm(np.log10(x)))* spherical_jn(int(ell), k*(self.eta0 - x)),
-                         self.eta_start, 1e3, limit=200)[0]
+                         self.eta_start, self.eta0, limit=200)[0]
             term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
                          (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
-                         , self.eta_start, 1e3, limit=200)[0]
+                         , self.eta_start, self.eta0, limit=200)[0]
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
                            spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
 
