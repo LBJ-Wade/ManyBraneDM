@@ -102,6 +102,7 @@ class CMB(object):
         self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic',
                                   bounds_error=False, fill_value=-100.)
         self.eta_start = 10.**self.scale_to_ct(visfunc[-1,0])
+    
         return
 
     def kspace_linear_pert(self, kVAL=None):
@@ -160,6 +161,9 @@ class CMB(object):
         PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 6] + fields[:, 11] + fields[:, 12], kind='cubic', bounds_error=False, fill_value=0.)
         pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
         sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
+        
+        etaVisMax = self.vis_max_eta()
+        
         for i in range(len(pre_2nd_derTerm) - 2):
             h2 = fields[i+2,0] - fields[i+1, 0]
             h1 = fields[i+1,0] - fields[i, 0]
@@ -175,14 +179,17 @@ class CMB(object):
         e_vals = fields[:,0]
         
         for i,ell in enumerate(ell_tab):
-            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) + PiPolar(np.log10(x))*0.25 + 3./(4.*k**2.)*DerTerm(np.log10(x)))* spherical_jn(int(ell), k*(self.eta0 - x)),
-                         self.eta_start, self.eta0, limit=200)[0]
-            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
-                         (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
-                         , self.eta_start, self.eta0, limit=200)[0]
+#            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) + PiPolar(np.log10(x))*0.25 + 3./(4.*k**2.)*DerTerm(np.log10(x)))* spherical_jn(int(ell), k*(self.eta0 - x)),
+#                         self.eta_start, self.eta0, limit=200)[0]
+            term1 = self.visibility(etaVisMax)*(theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)) + PiPolar(np.log10(etaVisMax))*0.25 + 3./(4.*k**2.)*DerTerm(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
+#            term2 = quad(lambda x: self.visibility(x)*vb_I(np.log10(x))*(spherical_jn(int(ell-1), k*(self.eta0 - x)) -
+#                         (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))
+#                         , self.eta_start, self.eta0, limit=200)[0]
+            term2 = self.visibility(etaVisMax)*vb_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) -
+                         (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))           
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
                            spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
-
+        
             thetaVals[i] = term1 + term2 + term3
 #
 #            if np.abs(thetaVals[i]) < 1e-50:
@@ -247,6 +254,11 @@ class CMB(object):
     def visibility(self, eta):
         ln10aval = self.ct_to_scale(np.log10(eta))
         return 10.**self.Vfunc(ln10aval)
+    
+    def vis_max_eta(self):
+        etaL = np.logspace(-1, np.log10(self.eta0), 2000)
+        visEval = self.visibility(etaL)
+        return etaL[np.argmax(visEval)]
 
     def MatterPower(self):
         # T(k) = \Phi(k, a=1) / \Phi(k = Large, a= 1)
