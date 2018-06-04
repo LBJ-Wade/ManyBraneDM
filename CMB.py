@@ -187,9 +187,9 @@ class CMB(object):
 #                         , self.eta_start, self.eta0, limit=200)[0]
             term2 = self.visibility(etaVisMax)*vb_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) -
                          (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))           
-            term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
-        
+#            term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
+#                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
+#        
             thetaVals[i] = term1 + term2 + term3
 #
 #            if np.abs(thetaVals[i]) < 1e-50:
