@@ -190,7 +190,7 @@ class CMB(object):
 #            term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
 #                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
 #        
-            thetaVals[i] = term1 + term2 + term3
+            thetaVals[i] = term1 + term2 #+ term3
 #
 #            if np.abs(thetaVals[i]) < 1e-50:
 #                thetaVals[i] = 1e-50
