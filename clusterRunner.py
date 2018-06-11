@@ -34,7 +34,7 @@ else:
 
 
 lmax_Pert = 10
-process_Num = 15
+process_Num = 1
 
 compute_LP = False
 compute_TH = True
