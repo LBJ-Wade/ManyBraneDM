@@ -108,7 +108,6 @@ class Universe(object):
             self.Neu_Dot[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
             self.Neu_Dot[2].append(1./30.*(self.k*eta_0)**2.*self.Psi_vec[-1])
             
-            
             for i in range(self.Lmax + 1):
                 if i > 1:
                     self.Theta_Dot[i].append(0.)
