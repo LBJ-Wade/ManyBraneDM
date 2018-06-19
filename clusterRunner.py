@@ -33,8 +33,8 @@ else:
     OM_L2 = 0.
 
 
-lmax_Pert = 10
-process_Num = 1
+lmax_Pert = 100
+process_Num = 15
 
 compute_LP = False
 compute_TH = True
