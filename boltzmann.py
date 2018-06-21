@@ -996,7 +996,8 @@ class ManyBrane_Universe(object):
         self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
         return
     
-    def xeDiff(self, val, y, hydrogen=True, first=True, tcmbD=self.darkCMB_T):
+    def xeDiff(self, val, y, hydrogen=True, first=True):
+        tcmbD=self.darkCMB_T
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
         else:
