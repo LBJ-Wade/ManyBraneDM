@@ -972,7 +972,8 @@ class ManyBrane_Universe(object):
         csSq = 2.998e8**2.
         return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
     
-    def xeDark_Tab(self, tcmbD=self.darkCMB_T):
+    def xeDark_Tab(self):
+        tcmbD=self.darkCMB_T
         print 'Calculating Dark Free Electron Fraction'
         x0 = 1.
         yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 500)
