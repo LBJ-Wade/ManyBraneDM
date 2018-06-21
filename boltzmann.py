@@ -172,7 +172,8 @@ class Universe(object):
                 continue
             self.step += 1
             if (np.abs(test_epsilon) < 1e-4*self.accuracy) and not last_step_up:
-                self.stepsize *= 1.1
+                #self.stepsize *= 1.1
+                self.stepsize *= 1.
                 last_step_up = True
                 #print 'Increase Step Size'
             else:
@@ -427,11 +428,16 @@ class ManyBrane_Universe(object):
         self.omega_nu = omega_nu
         self.Nbrane = Nbrane
         
+        self.darkCMB_T = 2.7255 * (omega_g[0] / omega_g[1])**0.25
+        
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         
-        self.yp_prime = 0.2262 + 0.0135*np.log(self.omega_b[1]/self.omega_b[0]*6.25)
+        #self.yp_prime = 0.2262 + 0.0135*np.log(self.omega_b[1]/self.omega_b[0]*6.25)
+        ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
+        nbarys = 2.503e-7 * (omega_b[1]/omega_b[0])
+        etaPr = 6.1e-10 * (omega_b[1]/omega_b[0])*(omega_g[0]/omega_g[1])
+        self.yp_prime = Yp_Prime(etaPr)
         #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
-        
         
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
@@ -937,7 +943,7 @@ class ManyBrane_Universe(object):
     def Tab_dark_Temp(self):
         print 'Calculating Tb evolution of Dark Brane...'
         y0 = self.y_vector[0]
-        Tg_0 = 2.7255 / np.exp(y0)
+        Tg_0 = self.darkCMB_T / np.exp(y0)
         
         yvals = np.linspace(y0, 0., 300)
         solvR = odeint(self.dotT, Tg_0, yvals)
@@ -956,7 +962,7 @@ class ManyBrane_Universe(object):
         hub = self.hubble(aval)
         omega_Rat = self.omega_g[1]/self.omega_b[1]
         xeval = 10.**self.XE_DARK_B(np.log10(aval))
-        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xeval*(1.-Yp)*n_b*6.65e-25/hub)*(2.7255/aval - T[0])*Mpc_to_cm)
+        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xeval*(1.-Yp)*n_b*6.65e-25/hub)*(self.darkCMB_T/aval - T[0])*Mpc_to_cm)
     
     def Cs_Sqr_Dark(self, a):
         kb = 1.3806e-23
@@ -966,7 +972,7 @@ class ManyBrane_Universe(object):
         csSq = 2.998e8**2.
         return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
     
-    def xeDark_Tab(self, tcmbD=2.7255):
+    def xeDark_Tab(self, tcmbD=self.darkCMB_T):
         print 'Calculating Dark Free Electron Fraction'
         x0 = 1.
         yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 500)
@@ -989,7 +995,7 @@ class ManyBrane_Universe(object):
         self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
         return
     
-    def xeDiff(self, val, y, hydrogen=True, first=True, tcmbD=2.7255):
+    def xeDiff(self, val, y, hydrogen=True, first=True, tcmbD=self.darkCMB_T):
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
         else:

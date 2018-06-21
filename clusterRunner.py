@@ -33,7 +33,7 @@ else:
     OM_L2 = 0.
 
 
-lmax_Pert = 100
+lmax_Pert = 200
 process_Num = 15
 
 compute_LP = False
@@ -48,10 +48,10 @@ if compute_MPS:
     knum = 100
 else:
     kmin = 1e-3
-    kmax = 5e-1
+    kmax = 1e-1
     knum = 1000
 
-lmax = 2500
+lmax = 1500
 lvals = 10 # Doesnt do anything right now
 
 

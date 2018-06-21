@@ -49,7 +49,7 @@ class CMB(object):
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
-        ell_val = range(self.lmin, self.lmax, 20)
+        ell_val = range(self.lmin, self.lmax, 40)
         
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
@@ -121,14 +121,14 @@ class CMB(object):
                 fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
                 continue
-            stepsize = 0.01
+            stepsize = 0.005
             success = False
             while not success:
                 print 'Working on k = {:.3e}, step size = {:.3e}'.format(k, stepsize)
                 try:
                     if not self.multiverse:
                         SingleUni = Universe(k, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu,
-                                             stepsize=stepsize, accuracy=1e-3, lmax=self.lmax_Pert).solve_system()
+                                             stepsize=stepsize, accuracy=1e-4, lmax=self.lmax_Pert).solve_system()
                     else:
                         ManyBrane_Universe(self.Nbrane, k, [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
                                           [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
