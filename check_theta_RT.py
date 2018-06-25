@@ -15,4 +15,4 @@ for ff in file_list:
     endarr.append([kval, loadf])
     
 finArr = np.asarray(endarr)[np.argsort(np.asarray(endarr[:,0]))
-np.savetxt(path + '/OutputFiles/CHECK_THETA.dat')
+np.savetxt(path + '/OutputFiles/CHECK_THETA.dat', finArr)
