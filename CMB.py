@@ -49,7 +49,7 @@ class CMB(object):
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
-        ell_val = range(self.lmin, self.lmax, 10)
+        ell_val = range(self.lmin, self.lmax, 15)
         
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
@@ -201,10 +201,16 @@ class CMB(object):
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
         ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
+        klist = np.array([])
         for i in range(len(ThetaFiles)):
-            dat = np.loadtxt(ThetaFiles[i])
+            kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
+            klist = np.append(klist, kval)
+        
+        klist = np.sort(klist)
+        for i in range(len(ThetaFiles)):
+            dat = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(klist[i]))
             self.ThetaTabTot[i+1,:] = dat
-            os.remove(ThetaFiles[i])
+            os.remove(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(klist[i]))
         np.savetxt(self.ThetaFile, self.ThetaTabTot, fmt='%.4e')
         
         if test:
