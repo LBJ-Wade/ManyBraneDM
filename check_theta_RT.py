@@ -9,7 +9,7 @@ inRUN = False
 if inRUN:
     files = path + '/OutputFiles/*_ThetaFile_kval*.dat'
 else:
-    files = path + '/OutputFiles/StanardUniverse_ThetaCMB_Table.dat'
+    files = path + '/OutputFiles/StandardUniverse_ThetaCMB_Table.dat'
 
 ell_indx = 0
 endarr = []
