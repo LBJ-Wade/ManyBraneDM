@@ -21,7 +21,8 @@ for ff in file_list:
         loadf = np.loadtxt(ff)[ell_indx]
         endarr.append([kval, loadf])
     else:
-        finArr = np.loadtxt(ff)[1:, ell_indx]
+        kvals = np.logspace(-3, -1, 2000)
+        finArr = np.column_stack((kvals, np.loadtxt(ff)[1:, ell_indx]))
 
 if inRUN:
     finArr = np.asarray(endarr)[np.argsort(np.asarray(endarr)[:,0])]
