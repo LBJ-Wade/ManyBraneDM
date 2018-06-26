@@ -49,7 +49,7 @@ class CMB(object):
         self.eta0 = 1.4100e4
         self.init_pert = -1/6.
         
-        ell_val = range(self.lmin, self.lmax, 15)
+        ell_val = range(self.lmin, self.lmax, 10)
         
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
