@@ -73,6 +73,8 @@ SetCMB = CMB(OM_b, OM_c, OM_g, OM_L, kmin=kmin, kmax=kmax, knum=knum, lmax=lmax,
 if compute_LP or compute_TH:
     pool = Pool(processes=process_Num)
     pool.map(CMB_wrap, kgrid)
+    pool.close()
+    pool.join()
     if compute_TH:
         SetCMB.SaveThetaFile()
 
