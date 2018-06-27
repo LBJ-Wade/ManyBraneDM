@@ -120,14 +120,14 @@ class CMB(object):
                 fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
                 continue
-            stepsize = 0.1
+            stepsize = 1e-2
             success = False
             while not success:
                 print 'Working on k = {:.3e}, step size = {:.3e}'.format(k, stepsize)
                 try:
                     if not self.multiverse:
                         SingleUni = Universe(k, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu,
-                                             stepsize=stepsize, accuracy=1e-4, lmax=self.lmax_Pert).solve_system()
+                                             stepsize=stepsize, accuracy=1e-3, lmax=self.lmax_Pert).solve_system()
                     else:
                         ManyBrane_Universe(self.Nbrane, k, [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
                                           [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
@@ -168,8 +168,8 @@ class CMB(object):
 #            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
 #        DerTerm = interp1d(np.log10(fields[:,0][1:-1]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
-#        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
-#        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
 
         thetaVals = np.zeros(len(ell_tab))
 #        testINTS = np.zeros((len(ell_tab), 3))
@@ -178,10 +178,10 @@ class CMB(object):
         for i,ell in enumerate(ell_tab):
             term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
             term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
-#            term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-#                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
-#        
-            thetaVals[i] = term1 + term2 #+ term3
+            term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
+                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
+#
+            thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
 #        np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
@@ -221,9 +221,8 @@ class CMB(object):
 #            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
 #            cL_interp = interp1d(np.log10(self.kgrid), 100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2., kind='cubic', fill_value=0.)
             # integrate in log k
-            cL_interp = interp1d(np.log(self.kgrid), (self.kgrid/self.H_0)**(0.968-1.)*(thetaTab[1:, i]/self.init_pert), kind='cubic', fill_value=0.)
-            CLint = quad(lambda x: 100.*np.pi/(9.)*cL_interp(x)**2., np.log(self.kgrid[0]), np.log(self.kgrid[-1]), limit=200)
-#            CLint = quad(lambda x: cL_interp(np.log10(x)), self.kgrid[0], self.kgrid[-1], limit=200)
+            cL_interp = interp1d(np.log(self.kgrid), (self.kgrid/self.H_0)**(0.968-1.)*(thetaTab[1:, i]/self.init_pert)/self.kgrid, kind='cubic', fill_value=0.)
+            CLint = quad(lambda x: 100.*np.pi/(9.)*cL_interp(np.log10(x))**2., self.kgrid[0], self.kgrid[-1], limit=200)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
                 print i, ell
