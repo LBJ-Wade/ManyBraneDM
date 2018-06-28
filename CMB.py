@@ -156,17 +156,17 @@ class CMB(object):
         psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
         vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
 
-#        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 6] + fields[:, 11] + fields[:, 12], kind='cubic', bounds_error=False, fill_value=0.)
-#        pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
+        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 6] + fields[:, 11] + fields[:, 12], kind='cubic', bounds_error=False, fill_value=0.)
+        pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
 #        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
 
         etaVisMax = self.vis_max_eta()
 #
-#        for i in range(len(pre_2nd_derTerm) - 2):
-#            h2 = fields[i+2,0] - fields[i+1, 0]
-#            h1 = fields[i+1,0] - fields[i, 0]
-#            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
-#        DerTerm = interp1d(np.log10(fields[:,0][1:-1]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
+        for i in range(len(pre_2nd_derTerm) - 2):
+            h2 = fields[i+2,0] - fields[i+1, 0]
+            h1 = fields[i+1,0] - fields[i, 0]
+            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
+        DerTerm = interp1d(np.log10(fields[:,0][1:-1]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
         phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
@@ -179,7 +179,8 @@ class CMB(object):
 #            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
 
             # Full. Dodelson 8.54
-            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x))) *
+            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
+                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
                            spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=50)[0]
             term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k) *
                            spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
