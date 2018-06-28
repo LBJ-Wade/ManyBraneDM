@@ -229,8 +229,8 @@ class CMB(object):
 #            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
 #            cL_interp = interp1d(np.log10(self.kgrid), 100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2., kind='cubic', fill_value=0.)
             # integrate in log k
-            cL_interp = interp1d(self.kgrid, (self.kgrid/self.H_0)**(0.968-1.)*(thetaTab[1:, i]/self.init_pert)/self.kgrid, kind='cubic', fill_value=0.)
-            CLint = quad(lambda x: 100.*np.pi/(9.)*cL_interp(x)**2., self.kgrid[0], self.kgrid[-1], limit=200)
+            cL_interp = interp1d(self.kgrid, (thetaTab[1:, i]/self.init_pert), kind='cubic', fill_value=0.)
+            CLint = quad(lambda x: (x/self.H_0)**(0.968-1.)*100.*np.pi/(9.)*cL_interp(x)**2./x, self.kgrid[0], self.kgrid[-1], limit=200)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
                 print i, ell
