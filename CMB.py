@@ -34,6 +34,8 @@ class CMB(object):
         if OM_b2 != 0.:
             self.PressFac = (OM_g2 / OM_b2) / (OM_g / OM_b)
         
+        self.eCDM = OM_c + OM_c2 * Nbrane
+        
         self.kmin = kmin
         self.kmax = kmax
         self.knum = knum
@@ -114,8 +116,8 @@ class CMB(object):
         for k in kgrid:
             if self.multiverse:
                 fileName = path + '/OutputFiles/' + self.Ftag + \
-                         '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(k, self.Nbrane,
-                                                                                           self.PressFac)
+                         '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(k, self.Nbrane,
+                                                                                                       self.PressFac, self.eCDM)
             else:
                 fileName = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k)
             if os.path.isfile(fileName):
@@ -271,7 +273,7 @@ class CMB(object):
             PS[i] = k*Tktab[i]**2.
         if self.multiverse:
             np.savetxt(path + '/OutputFiles/' + self.Ftag +
-                       '_MatterPowerSpectrum_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(self.Nbrane,self.PressFac),
+                       '_MatterPowerSpectrum_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane,self.PressFac,self.eCDM),
                        np.column_stack((self.kgrid, PS)))
         else:
             np.savetxt(path + '/OutputFiles/' + self.Ftag + '_MatterPowerSpectrum.dat', np.column_stack((self.kgrid, PS)))
@@ -280,7 +282,8 @@ class CMB(object):
     def TransferFuncs(self):
         if self.multiverse:
             Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag +
-                        '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(self.kmin, self.Nbrane, self.PressFac))
+                        '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.kmin, self.Nbrane,
+                        self.PressFac, self.eCDM))
         else:
             Minfields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(self.kmin))
         LargeScaleVal = Minfields[-1, 1]
@@ -289,7 +292,8 @@ class CMB(object):
         for i,k in enumerate(self.kgrid):
             if self.multiverse:
                 field =  np.loadtxt(path + '/OutputFiles/'+ self.Ftag +
-                                    '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(k, self.Nbrane, self.PressFac))
+                                    '_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(k, self.Nbrane,
+                                    self.PressFac, self.eCDM))
             else:
                 field =  np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
             Tktab[i] = field[-1,1] / LargeScaleVal

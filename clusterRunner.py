@@ -3,8 +3,10 @@ import os
 from CMB import *
 #from multiprocessing import Pool
 
-Multiverse = False
+Multiverse = True
 Nbranes = 1e7
+PressureFac = 1e-3
+extraCDM = 0.000
 
 if not Multiverse:
     Ftag = 'StandardUniverse'
@@ -20,18 +22,23 @@ if not Multiverse:
 else:
     Ftag = 'MultiBrane'
     omega_cdm = 0.2637
-
+    
     OM_b = 0.0482
     OM_c = 0.
     OM_g = 5.38e-5
     OM_L = 0.
 
-    # if you want fixed omega_g / omega_b on other branes...
-    OM_b2 =  omega_cdm/Nbranes
-    OM_c2 = 0.
-    OM_g2 = 1e-6*(OM_g/OM_b)*(omega_cdm/Nbranes)
-    OM_L2 = 0.
-
+    if extraCDM == 0:
+        OM_b2 =  omega_cdm/Nbranes
+        OM_c2 = 0.
+        OM_g2 = PressureFac*(OM_g/OM_b)*OM_b2
+        OM_L2 = 0.
+    else:
+        OM_c = extraCDM / (1. + (omega_cdm - extraCDM)/OM_b)
+        OM_c2 = extraCDM / Nbranes * (1. - 1. / (1. + (omega_cdm - extraCDM)/OM_b))
+        OM_b2 = (omega_cdm - extraCDM) / Nbranes
+        OM_g2 = PressureFac*(OM_g/OM_b)*OM_b2
+        OM_L2 = 0.
 
 lmax_Pert = 200
 process_Num = 1

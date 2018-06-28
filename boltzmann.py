@@ -431,6 +431,7 @@ class ManyBrane_Universe(object):
         self.darkCMB_T = 2.7255 * (omega_g[1] / omega_g[0])**0.25
         
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
+        self.ECDM = self.omega_cdm_T
         
         #self.yp_prime = 0.2262 + 0.0135*np.log(self.omega_b[1]/self.omega_b[0]*6.25)
         ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
@@ -1113,11 +1114,11 @@ class ManyBrane_Universe(object):
         for i in range(2*self.TotalVars-1):
             sve_tab[:,i+1] = self.combined_vector[i]
         np.savetxt(path + '/OutputFiles/MultiBrane_FieldEvolution_' +
-                  '{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}.dat'.format(self.k, self.Nbrane, self.PressureFac),
+                  '{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.k, self.Nbrane, self.PressureFac, self.ECDM),
                   sve_tab, fmt='%.8e', delimiter='    ')
         
         if self.testing:
-            np.savetxt(path+'/OutputFiles/MultiBrane_Background_Nbranes_{:.0e}_PressFac_{:.2e}.dat'.format(self.Nbrane, self.PressureFac),
+            np.savetxt(path+'/OutputFiles/MultiBrane_Background_Nbranes_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressureFac, self.ECDM),
                         np.column_stack((self.aLIST, self.etaLIST, self.xeLIST, self.hubLIST, self.csLIST,
                                          self.dtauLIST, self.xeD_LIST, self.csD_LIST, self.dtauD_LIST)))
         return
