@@ -179,9 +179,9 @@ class CMB(object):
 #            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
 
             # Full. Dodelson 8.54
-            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)))
+            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x))) *
                            spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=50)[0]
-            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k)*
+            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k) *
                            spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
                            
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
