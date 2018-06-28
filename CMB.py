@@ -154,7 +154,7 @@ class CMB(object):
         theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
         theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
         psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
-#        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
 
 #        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 6] + fields[:, 11] + fields[:, 12], kind='cubic', bounds_error=False, fill_value=0.)
 #        pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
@@ -172,15 +172,20 @@ class CMB(object):
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
 
         thetaVals = np.zeros(len(ell_tab))
-#        testINTS = np.zeros((len(ell_tab), 3))
-#        e_vals = fields[:,0]
 
         for i,ell in enumerate(ell_tab):
-            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
-            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
+            # Approximate. Dodelson 8.56
+#            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
+#            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
+
+            # Full. Dodelson 8.54
+            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)))
+                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=50)[0]
+            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k)
+                           spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
+                           
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=200)[0]
-#
+                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50)[0]
             thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
@@ -221,8 +226,8 @@ class CMB(object):
 #            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
 #            cL_interp = interp1d(np.log10(self.kgrid), 100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2., kind='cubic', fill_value=0.)
             # integrate in log k
-            cL_interp = interp1d(np.log(self.kgrid), (self.kgrid/self.H_0)**(0.968-1.)*(thetaTab[1:, i]/self.init_pert)/self.kgrid, kind='cubic', fill_value=0.)
-            CLint = quad(lambda x: 100.*np.pi/(9.)*cL_interp(np.log10(x))**2., self.kgrid[0], self.kgrid[-1], limit=200)
+            cL_interp = interp1d(self.kgrid, (self.kgrid/self.H_0)**(0.968-1.)*(thetaTab[1:, i]/self.init_pert)/self.kgrid, kind='cubic', fill_value=0.)
+            CLint = quad(lambda x: 100.*np.pi/(9.)*cL_interp(x)**2., self.kgrid[0], self.kgrid[-1], limit=200)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
                 print i, ell

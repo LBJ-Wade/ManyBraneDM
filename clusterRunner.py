@@ -8,8 +8,8 @@ Nbranes = 1e7
 
 if not Multiverse:
     Ftag = 'StandardUniverse'
-    OM_b = 0.0484
-    OM_c = 0.258
+    OM_b = 0.0482
+    OM_c = 0.2637
     OM_g = 5.38e-5
     OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 
@@ -19,9 +19,9 @@ if not Multiverse:
     OM_L2 = 0.
 else:
     Ftag = 'MultiBrane'
-    omega_cdm = 0.258
+    omega_cdm = 0.2637
 
-    OM_b =  0.0484
+    OM_b = 0.0482
     OM_c = 0.
     OM_g = 5.38e-5
     OM_L = 0.
@@ -34,9 +34,9 @@ else:
 
 
 lmax_Pert = 200
-process_Num = 15
+process_Num = 1
 
-compute_LP = False
+compute_LP = True
 compute_TH = True
 compute_CMB = True
 compute_MPS = False

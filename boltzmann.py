@@ -27,8 +27,8 @@ class Universe(object):
         self.omega_R = omega_g + omega_nu
         self.omega_L = 1. - self.omega_M - self.omega_R
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4100e4 #1.4135e+04
-
+        self.eta_0 = 1.4135e+04 #1.4100e4
+        
         self.Lmax = lmax
         self.stepsize = stepsize
         
@@ -428,7 +428,7 @@ class ManyBrane_Universe(object):
         self.omega_nu = omega_nu
         self.Nbrane = Nbrane
         
-        self.darkCMB_T = 2.7255 * (omega_g[0] / omega_g[1])**0.25
+        self.darkCMB_T = 2.7255 * (omega_g[1] / omega_g[0])**0.25
         
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         
@@ -944,11 +944,12 @@ class ManyBrane_Universe(object):
         print 'Calculating Tb evolution of Dark Brane...'
         y0 = self.y_vector[0]
         Tg_0 = self.darkCMB_T / np.exp(y0)
-        
+
         yvals = np.linspace(y0, 0., 300)
         solvR = odeint(self.dotT, Tg_0, yvals)
         self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
         #np.savetxt(path + '/precomputed/TEST_DARK_TEMP.dat',self.Tb_drk)
+        self.Tb_drk[self.Tb_drk<0] = 1e-20
         self.Tb_DARK = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
         return
         
