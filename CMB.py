@@ -160,10 +160,9 @@ class CMB(object):
 
         PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 6] + fields[:, 11] + fields[:, 12], kind='cubic', bounds_error=False, fill_value=0.)
         pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
-#        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
+        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
 
-        etaVisMax = self.vis_max_eta()
-#
+#        etaVisMax = self.vis_max_eta()
         for i in range(len(pre_2nd_derTerm) - 2):
             h2 = fields[i+2,0] - fields[i+1, 0]
             h1 = fields[i+1,0] - fields[i, 0]
