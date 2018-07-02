@@ -46,7 +46,7 @@ class CMB(object):
         self.lmax_Pert = lmax_Pert
         self.lmin = 10
         
-        self.multiverse=multiverse
+        self.multiverse = multiverse
         
         self.eta0 = 1.4135e+04 #1.4100e4
         self.init_pert = -1/6.
@@ -151,7 +151,12 @@ class CMB(object):
             index = np.where(self.kgrid == kVAL)[0][0] + 1
         ell_tab = self.ThetaTabTot[0,:]
         
-        fields = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}.dat'.format(k))
+        fileNme = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}'.format(k)
+        if self.multiverse:
+            fileNme += 'PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.PressFac, self.eCDM)
+        else:
+            fileNme += '.dat'
+        fields = np.loadtxt(fileNme)
         
         theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
         theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
@@ -213,21 +218,16 @@ class CMB(object):
         np.savetxt(self.ThetaFile, self.ThetaTabTot, fmt='%.4e')
         
         if test:
-            #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
             np.savetxt(path + '/OutputFiles/TESTING_THETA.dat', np.column_stack((kgrid, self.ThetaTabTot[1:,:])))
         return
 
     def computeCMB(self):
         ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         thetaTab = np.loadtxt(ThetaFile)
-        #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
         for i,ell in enumerate(ell_tab):
-#            cL_interp = interp1d(np.log10(self.kgrid), np.log10(100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2.), kind='cubic', fill_value=-30)
-#            cL_interp = interp1d(np.log10(self.kgrid), 100.*np.pi/(9.*self.kgrid)*np.abs(thetaTab[1:, i]/self.init_pert)**2., kind='cubic', fill_value=0.)
-            # integrate in log k
             cL_interp = interp1d(self.kgrid, (thetaTab[1:, i]/self.init_pert), kind='cubic', fill_value=0.)
             CLint = quad(lambda x: (x/self.H_0)**(0.968-1.)*100.*np.pi/(9.)*cL_interp(x)**2./x, self.kgrid[0], self.kgrid[-1], limit=200)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
