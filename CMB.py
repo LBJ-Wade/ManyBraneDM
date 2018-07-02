@@ -205,11 +205,19 @@ class CMB(object):
         return
     
     def SaveThetaFile(self, test=False):
-        #kgrid = np.linspace(self.kmin, self.kmax, self.knum)
+        
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         if os.path.isfile(self.ThetaFile):
             os.remove(self.ThetaFile)
-        ThetaFiles = glob.glob(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*.dat')
+        
+        t_file_nmes = path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_*'
+        if self.multiverse:
+            extraTG = '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
+        else:
+            extraTG = '.dat'
+        t_file_nmes += extraTG
+        
+        ThetaFiles = glob.glob(t_file_nmes)
         klist = np.array([])
         for i in range(len(ThetaFiles)):
             kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
@@ -217,9 +225,9 @@ class CMB(object):
         
         klist = np.sort(klist)
         for i in range(len(ThetaFiles)):
-            dat = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(klist[i]))
+            dat = np.loadtxt(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}'.format(klist[i]) + extraTG)
             self.ThetaTabTot[i+1,:] = dat
-            os.remove(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(klist[i]))
+            os.remove(path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}'.format(klist[i]) + extraTG)
         np.savetxt(self.ThetaFile, self.ThetaTabTot, fmt='%.4e')
         
         if test:
@@ -227,7 +235,12 @@ class CMB(object):
         return
 
     def computeCMB(self):
-        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
+        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table'
+        if self.multiverse:
+            ThetaFile += '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
+        else:
+            ThetaFile += '.dat'
+        
         thetaTab = np.loadtxt(ThetaFile)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
@@ -243,7 +256,12 @@ class CMB(object):
                 print cL_interp(np.log10(self.kgrid))
                 exit()
 
-        np.savetxt(path + '/OutputFiles/' + self.Ftag + '_CL_Table.dat', CL_table)
+        Cl_name = path + '/OutputFiles/' + self.Ftag + '_CL_Table'
+        if self.multiverse:
+            Cl_name += '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
+        else:
+            Cl_name += '.dat'
+        np.savetxt(Cl_name, CL_table)
         return
 
     def growthFactor(self, a):
