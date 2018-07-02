@@ -143,7 +143,12 @@ class CMB(object):
         return
 
     def theta_integration(self, k, kVAL=None):
-        filename = path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}.dat'.format(k)
+        filename = path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}'.format(k)
+        if self.multiverse:
+            filename += '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
+        else:
+            filename += '.dat'
+        
         if os.path.isfile(filename):
             return
         if kVAL is not None:
