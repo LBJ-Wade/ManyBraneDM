@@ -153,7 +153,7 @@ class CMB(object):
         
         fileNme = path + '/OutputFiles/' + self.Ftag + '_FieldEvolution_{:.4e}'.format(k)
         if self.multiverse:
-            fileNme += 'PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.PressFac, self.eCDM)
+            fileNme += '_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.PressFac, self.eCDM)
         else:
             fileNme += '.dat'
         fields = np.loadtxt(fileNme)
