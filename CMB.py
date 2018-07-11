@@ -52,6 +52,7 @@ class CMB(object):
         self.init_pert = -1/6.
         
         ell_val = range(self.lmin, self.lmax, 10)
+        self.clearfiles()
         
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
@@ -89,15 +90,33 @@ class CMB(object):
             self.MatterPower()
         return
     
+    def clearfiles(self):
+        if os.path.isfile(path + '/precomputed/xe_working.dat'):
+            os.remove(path + '/precomputed/xe_working.dat')
+        if os.path.isfile(path + '/precomputed/tb_working.dat'):
+            os.remove(path + '/precomputed/tb_working.dat')
+    
     def loadfiles(self):
+    
         opt_depthL = np.loadtxt(path + '/precomputed/expOpticalDepth.dat')
         self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
                                   bounds_error=False, fill_value='extrapolate')
-        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='cubic',
-                                    bounds_error=False, fill_value='extrapolate')
-        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='cubic',
-                                    bounds_error=False, fill_value='extrapolate')
+#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
+#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='cubic',
+#                                    bounds_error=False, fill_value='extrapolate')
+#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='cubic',
+#                                    bounds_error=False, fill_value='extrapolate')
+        if not self.multiverse:
+            SingleUni = Universe(.1, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu)
+            self.ct_to_scale = lambda x: SingleUni.ct_to_scale(x)
+            self.scale_to_ct = lambda x: SingleUni.scale_to_ct(x)
+        else:
+            ManyBrane_Universe(self.Nbrane, .1, [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
+                                          [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
+                                          [self.OM_nu, self.OM_nu2])
+            self.ct_to_scale = lambda x: ManyBrane_Universe.ct_to_scale(x)
+            self.scale_to_ct = lambda x: ManyBrane_Universe.scale_to_ct(x)
+
         visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
         visfunc = np.log10(visfunc[visfunc[:,1] > 0.])
         self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic',
@@ -172,7 +191,7 @@ class CMB(object):
         pre_2nd_derTerm = (fields[:, 6] + fields[:, 11] + fields[:, 12])*self.visibility(fields[:,0])
         sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
 
-#        etaVisMax = self.vis_max_eta()
+        etaVisMax = self.vis_max_eta()
         for i in range(len(pre_2nd_derTerm) - 2):
             h2 = fields[i+2,0] - fields[i+1, 0]
             h1 = fields[i+1,0] - fields[i, 0]
@@ -186,16 +205,16 @@ class CMB(object):
 
         for i,ell in enumerate(ell_tab):
             # Approximate. Dodelson 8.56
-#            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
-#            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
+            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
+            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
 
             # Full. Dodelson 8.54
-            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
-                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
-                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=50)[0]
-            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k) *
-                           spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
-                           
+#            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
+#                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
+#                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=50)[0]
+#            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k) *
+#                           spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
+
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
                            spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50)[0]
             thetaVals[i] = term1 + term2 + term3

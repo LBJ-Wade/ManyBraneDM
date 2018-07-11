@@ -5,6 +5,7 @@ import sympy
 #from sympy.matrices import *
 import scipy
 import scipy.linalg
+from scipy.optimize import fsolve
 from scipy.linalg import lu_solve, lu_factor, inv
 from scipy.integrate import ode, quad, odeint
 from scipy.interpolate import interp1d
@@ -55,8 +56,9 @@ class Universe(object):
             self.combined_vector[6+i*3] = self.Theta_P_Dot[i] = []
             self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
-        self.load_funcs()
-        
+#        self.load_funcs()
+        self.compute_funcs()
+
         self.testing = testing
         if self.testing:
             self.aLIST = []
@@ -68,24 +70,154 @@ class Universe(object):
         
         return
 
+    def compute_funcs(self):
+        a0_init = np.logspace(-14, 0, 1e4)
+        eta_list = np.zeros_like(a0_init)
+        for i in range(len(a0_init)):
+            eta_list[i] = self.conform_T(a0_init[i])
+        
+        self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
+                                    bounds_error=False, fill_value='extrapolate')
+        self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
+                                    bounds_error=False, fill_value='extrapolate')
+
     def load_funcs(self):
-        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
-        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
-                                    
-        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
-        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
+#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
+#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
+#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
+
+#        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
+#        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
         #xe_load = np.loadtxt(path + '/precomputed/Xe_evol.dat')
-        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
-        self.Xe = interp1d(np.log10(xe_load[:,0]), xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
-        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
-        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+#        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
+#
+#        self.Xe = interp1d(np.log10(xe_load[:,0]), np.log10(xe_load[:,1]), kind='linear', bounds_error=False, fill_value='extrapolate')
+
+#        refst = np.loadtxt('/Users/samuelwitte/Desktop/PBH21/External_tables/CosmoRec.HI.nS_eff_500.nH_3.nHe_3.H_abs.fcorr.Q_lines.X_Recfast.dat')
+#        self.Tb = interp1d(np.log10(1./(1.+refst[:,0])), np.log10(refst[:,2]), bounds_error=False, fill_value='extrapolate')
+
+#        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
+#        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+#        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
+#        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
         return
+    
+    def Tab_Temp(self):
+        self.tb_fileNme = path + '/precomputed/tb_working.dat'
+        if not os.path.isfile(self.tb_fileNme):
+        
+            print 'Calculating Tb...'
+            y0 = self.y_vector[0]
+            Tg_0 = 2.7255 / np.exp(y0)
+            yvals = np.linspace(y0, 0., 1000)
+            solvR = odeint(self.dotT, Tg_0, yvals)
+            self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
+            self.Tb_drk[self.Tb_drk<0] = 1e-20
+            np.savetxt(self.tb_fileNme, self.Tb_drk)
+        else:
+            self.Tb_drk = np.loadtxt(self.tb_fileNme)
+        self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
+        return
+    
+    def dotT(self, T, y):
+        kb = 8.617e-5/1e9 # Gev/K
+        thompson_xsec = 6.65e-25 # cm^2
+        aval = np.exp(y)
+        Yp = 0.245
+        Mpc_to_cm = 3.086e24
+        facxe = 10.**self.Xe(np.log10(aval))
+        mol_wei = np.zeros_like(facxe)
+        mol_wei[facxe >= 1] = 0.6
+        mol_wei[facxe < 1] = 1.22
+        n_b = 2.503e-7 / aval**3.
+        hub = self.hubble(aval)
+        omega_Rat = self.omega_g / self.omega_b
+        
+        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(facxe*n_b*thompson_xsec/hub)*(2.7255/aval - T[0])*Mpc_to_cm)
+    
+    def Cs_Sqr(self, a):
+        kb = 8.617e-5/1e9 # GeV/K
+        facxe = 10.**self.Xe(np.log10(a))
+        mol_wei = np.zeros_like(facxe)
+        mol_wei[facxe >= 1] = 0.6
+        mol_wei[facxe < 1] = 1.22
+        Tb = 10.**self.Tb(np.log10(a))
+        extraPT = self.dotT([Tb], np.log(a)) * a
+        
+        return kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
+    
+    def xe_Tab(self):
+        self.Xe_fileNme = path + '/precomputed/xe_working.dat'
+        if not os.path.isfile(self.Xe_fileNme):
+            tcmbD=2.7255
+            
+            print 'Calculating Free Electron Fraction'
+            x0 = 1.
+            yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 5000)
+            solvR = odeint(self.xeDiff, x0, yvals)
+            x0Convert = yvals*tcmbD*8.617e-5/13.6
+            
+            yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 5000)
+            solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
+            x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
+
+            yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 5000)
+            solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
+            x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
+
+            he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
+                                       bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
+            he2_interp = 10.**interp1d(np.log10(x0Convert2[solvR_He2.flatten() > 0]), np.log10(solvR_He2[solvR_He2 > 0]), kind='linear',
+                                       bounds_error=False, fill_value=-100)(np.log10(x0Convert))
+
+            self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
+    #        self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]))
+            np.savetxt(self.Xe_fileNme, self.Xe_dark)
+        else:
+            self.Xe_dark = np.loadtxt(self.Xe_fileNme)
+        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
+        return
+    
+    def xeDiff(self, val, y, hydrogen=True, first=True):
+        tcmbD=2.7255
+        if hydrogen:
+            ep0 = 13.6/1e9  # GeV
+        else:
+            if first:
+                ep0 = 54.4/1e9
+            else:
+                ep0 = 24.6/1e9
+
+        kb = 8.617e-5/1e9 # Gev/K
+        GeV_cm = 5.06e13
+        Mpc_to_cm = 3.086e24
+        me = 5.11e-4 # GeV
+        aval = tcmbD * kb * y / ep0
+        Yp = 0.245
+        if hydrogen:
+            n_b = 2.503e-7 / aval**3. * (1. - Yp)
+        else:
+            n_b = 2.503e-7 / aval**3. * Yp
+    
+        Tg = tcmbD / aval * kb # GeV
+        hub = self.hubble(aval)
+        FScsnt = 7.29e-3
+        
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(y)*np.log(y)*(1.9729744e-14)**2. # cm^2
+        beta = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-y)/(1.9729744e-14)**3. # 1/cm
+        beta2 = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-0.25*y)/(1.9729744e-14)**3.*Mpc_to_cm # 1/Mpc
+        
+        if val[0] > 0.999:
+            Cr = 1.
+        else:
+            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2.*n_b*(1.-val[0])) * GeV_cm**3.
+            L2g = 8.227 / 2.998e10 * Mpc_to_cm
+            Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
+        Value = 1./(y*hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        return [Value]
 
     def init_conds(self, eta_0, aval):
         OM = self.omega_M * self.H_0**2./self.hubble(aval)**2./aval**3.
@@ -129,6 +261,17 @@ class Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
+        self.xe_Tab()
+        self.Tab_Temp()
+        
+        # TESTING
+#        aL = np.logspace(-9, 0, 300)
+#        xeV = 10.**self.Xe(np.log10(aL))
+#        csT = self.Cs_Sqr(aL)
+#        tbT = 10.**self.Tb(np.log10(aL))
+#        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
+#        exit()
+
         try_count = 0.
         try_max = 20.
         FailRUN = False
@@ -217,8 +360,8 @@ class Universe(object):
         Rfac = (3.*self.rhoB(a_val))/(4.*self.rhoG(a_val))
         RR = (4.*self.rhoG(a_val))/(3.*self.rhoB(a_val))
         HUB = self.hubble(a_val)
-        dTa = -self.xe_deta(a_val)*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
-        CsndB = self.Csnd(a_val)
+        dTa = -10.**self.Xe(np.log10(a_val))*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
+        CsndB = self.Cs_Sqr(a_val)
         
         if self.testing:
             self.aLIST.append(a_val)
@@ -353,8 +496,8 @@ class Universe(object):
         Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
         return Jma
 
-    def Csnd(self, a):
-        return self.Csnd_interp(np.log10(a))/a
+#    def Csnd(self, a):
+#        return self.Csnd_interp(np.log10(a))/a
 
     def scale_a(self, eta):
         return 10.**self.ct_to_scale(np.log10(eta))
@@ -365,9 +508,6 @@ class Universe(object):
 
     def hubble(self, a):
         return self.H_0*np.sqrt(self.omega_R*a**-4+self.omega_M*a**-3.+self.omega_L)
-
-    def xe_deta(self, a):
-        return self.Xe(np.log10(a))
 
     def rhoCDM(self, a):
         return self.omega_cdm * self.H_0**2. * a**-3. 
@@ -443,7 +583,7 @@ class ManyBrane_Universe(object):
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4100e4 #1.4135e+04
+        self.eta_0 = 1.4135e+04 # 1.4100e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -502,26 +642,23 @@ class ManyBrane_Universe(object):
         return
 
     def load_funcs(self):
-        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
-        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
-                                    
-        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
-        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
-                                    bounds_error=False, fill_value='extrapolate')
+#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
+#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
+#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
+
+#        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
+#        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
+#                                    bounds_error=False, fill_value='extrapolate')
         #xe_load = np.loadtxt(path + '/precomputed/Xe_evol.dat')
-        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
-        self.Xe = interp1d(np.log10(xe_load[:,0]), xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
-        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
-        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-        
-        #self.MatFrac = np.array([1., 0.5, 0.25, 0.1, 0.066667])
-        #self.xeMulti = np.loadtxt(path + '/precomputed/Xe_MultiTab.dat')
-        #self.csMulti = np.loadtxt(path + '/precomputed/Csnd_MultiTab.dat')
+#        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
+#        self.Xe = interp1d(np.log10(xe_load[:,0]), xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+#        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
+#        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+#        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
+#        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
+
         
         return
 
@@ -945,8 +1082,7 @@ class ManyBrane_Universe(object):
         print 'Calculating Tb evolution of Dark Brane...'
         y0 = self.y_vector[0]
         Tg_0 = self.darkCMB_T / np.exp(y0)
-
-        yvals = np.linspace(y0, 0., 300)
+        yvals = np.linspace(y0, 0., 1000)
         solvR = odeint(self.dotT, Tg_0, yvals)
         self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
         #np.savetxt(path + '/precomputed/TEST_DARK_TEMP.dat',self.Tb_drk)
@@ -959,7 +1095,8 @@ class ManyBrane_Universe(object):
         aval = np.exp(y)
         Yp = self.yp_prime
         Mpc_to_cm = 3.086e24
-        mol_wei = 0.92513*0.938 # not entirely sure about this number
+        facxe = 10.**self.XE_DARK_B(np.log10(aval))
+        mol_wei = (0.7 * facxe + (1. - facxe)*1.735) * 0.938
         n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
         hub = self.hubble(aval)
         omega_Rat = self.omega_g[1]/self.omega_b[1]
@@ -968,7 +1105,8 @@ class ManyBrane_Universe(object):
     
     def Cs_Sqr_Dark(self, a):
         kb = 1.3806e-23
-        mol_wei = 0.92513*1.67e-27 # not entirely sure about this number
+        facxe = 10.**self.XE_DARK_B(np.log10(a))
+        mol_wei = (0.7 * facxe + (1. - facxe)*1.735) * 0.938
         Tb = 10.**self.Tb_DARK(np.log10(a))
         extraPT = self.dotT([Tb], np.log(a)) / a
         csSq = 2.998e8**2.
@@ -978,14 +1116,14 @@ class ManyBrane_Universe(object):
         tcmbD=self.darkCMB_T
         print 'Calculating Dark Free Electron Fraction'
         x0 = 1.
-        yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 500)
+        yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 1000)
         solvR = odeint(self.xeDiff, x0, yvals)
         x0Convert = yvals*tcmbD*8.617e-5/13.6
         
-        yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 500)
+        yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 1000)
         solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
         x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
-        yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 500)
+        yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 1000)
         solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
         x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
         
