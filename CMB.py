@@ -59,11 +59,11 @@ class CMB(object):
         self.ThetaTabTot[0,:] = ell_val
 
         self.fill_inx = 0
+        self.loadfiles()
     
     def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=False):
         
-        self.loadfiles()
         if compute_MPS:
             self.kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         else:
