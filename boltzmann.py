@@ -28,7 +28,7 @@ class Universe(object):
         self.omega_R = omega_g + omega_nu
         self.omega_L = 1. - self.omega_M - self.omega_R
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4135e+04 #1.4100e4
+        self.eta_0 = 1.004746e4
         
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -80,6 +80,20 @@ class Universe(object):
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
+            
+        self.xe_Tab()
+        self.Tab_Temp()
+
+    def clearfiles(self):
+        if os.path.isfile(path + '/precomputed/xe_working.dat'):
+            os.remove(path + '/precomputed/xe_working.dat')
+        if os.path.isfile(path + '/precomputed/tb_working.dat'):
+            os.remove(path + '/precomputed/tb_working.dat')
+
+        if os.path.isfile(path + '/precomputed/working_expOpticalDepth.dat'):
+            os.remove(path + '/precomputed/working_expOpticalDepth.dat')
+        if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
+            os.remove(path + '/precomputed/working_VisibilityFunc.dat')
 
     def load_funcs(self):
 #        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
@@ -110,7 +124,8 @@ class Universe(object):
         if not os.path.isfile(self.tb_fileNme):
         
             print 'Calculating Tb...'
-            y0 = self.y_vector[0]
+            y0 = np.log(self.scale_a(np.min([1e-3/self.k, 1e-1/0.7])))
+            
             Tg_0 = 2.7255 / np.exp(y0)
             yvals = np.linspace(y0, 0., 1000)
             solvR = odeint(self.dotT, Tg_0, yvals)
@@ -218,6 +233,28 @@ class Universe(object):
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
         Value = 1./(y*hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
+    
+    def tau_functions(self):
+        self.fileN_optdep = path + '/precomputed/working_expOpticalDepth.dat'
+        self.fileN_visibil = path + '/precomputed/working_VisibilityFunc.dat'
+        Mpc_to_cm = 3.086e24
+        if not os.path.isfile(self.fileN_visibil) or not os.path.isfile(self.fileN_optdep):
+            avals = np.logspace(-7, 0, 1000)
+            Yp = 0.245
+            n_b = 2.503e-7 / avals**3.
+            thompson_xsec = 6.65e-25 # cm^2
+            xevals = 10.**self.Xe(np.log10(avals))
+            hubbs = self.hubble(avals)
+            dtau = -xevals * (1. - Yp) * n_b * thompson_xsec * avals * Mpc_to_cm
+            dtau_I = interp1d(10.**self.scale_to_ct(np.log10(avals)), dtau, kind='linear', bounds_error=False, fill_value='extrapolate')
+            tau = np.zeros_like(dtau)
+            for i in range(len(dtau)):
+                tau[i] = -np.trapz(dtau[i:], 10.**self.scale_to_ct(np.log10(avals[i:])))
+            
+            np.savetxt(self.fileN_optdep, np.column_stack((avals, np.exp(-tau))))
+            np.savetxt(self.fileN_visibil, np.column_stack((avals, -dtau * np.exp(-tau))))
+    
+        return
 
     def init_conds(self, eta_0, aval):
         OM = self.omega_M * self.H_0**2./self.hubble(aval)**2./aval**3.
@@ -261,9 +298,6 @@ class Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
-        self.xe_Tab()
-        self.Tab_Temp()
-        
         # TESTING
 #        aL = np.logspace(-9, 0, 300)
 #        xeV = 10.**self.Xe(np.log10(aL))
@@ -277,6 +311,7 @@ class Universe(object):
         FailRUN = False
         last_step_up = False
         while (self.eta_vector[-1] < (self.eta_0-1.)):
+            
             if try_count > try_max:
                 #print 'FAIL TRY MAX....Breaking.'
                 FailRUN=True
@@ -369,7 +404,7 @@ class Universe(object):
             self.hubLIST.append(HUB)
             self.csLIST.append(CsndB)
             self.dtauLIST.append(dTa)
-            self.xeLIST.append(self.xe_deta(a_val))
+            self.xeLIST.append(10.**self.Xe(np.log10(a_val)))
         
         tflip_TCA = 1e-4
         
@@ -583,7 +618,7 @@ class ManyBrane_Universe(object):
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4135e+04 # 1.4100e4
+        self.eta_0 = 1.004746e4 # 1.4100e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -626,6 +661,7 @@ class ManyBrane_Universe(object):
             self.combined_vector[self.TotalVars+6+i*3] = self.Neu_Dot_D[i] = []
         
         self.load_funcs()
+        self.compute_funcs()
         
         self.testing = testing
         if self.testing:
@@ -641,6 +677,17 @@ class ManyBrane_Universe(object):
 
         return
 
+    def compute_funcs(self):
+        a0_init = np.logspace(-14, 0, 1e4)
+        eta_list = np.zeros_like(a0_init)
+        for i in range(len(a0_init)):
+            eta_list[i] = self.conform_T(a0_init[i])
+        
+        self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
+                                    bounds_error=False, fill_value='extrapolate')
+        self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
+                                    bounds_error=False, fill_value='extrapolate')
+                                    
     def load_funcs(self):
 #        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
 #        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',

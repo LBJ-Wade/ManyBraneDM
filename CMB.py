@@ -63,6 +63,7 @@ class CMB(object):
     def runall(self, kVAL=None, compute_LP=False, compute_TH=False,
                compute_CMB=False, compute_MPS=False):
         
+        self.loadfiles()
         if compute_MPS:
             self.kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
         else:
@@ -75,13 +76,13 @@ class CMB(object):
         
         if compute_TH:
             print 'Computing Theta Files...\n'
-            self.loadfiles()
+            
             if kVAL is not None:
                 self.theta_integration(kVAL, kVAL=kVAL)
             else:
                 for k in self.kgrid:
                     self.theta_integration(k)
-
+                    
         if compute_CMB:
             print 'Computing CMB...\n'
             self.computeCMB()
@@ -95,39 +96,45 @@ class CMB(object):
             os.remove(path + '/precomputed/xe_working.dat')
         if os.path.isfile(path + '/precomputed/tb_working.dat'):
             os.remove(path + '/precomputed/tb_working.dat')
+
+        if os.path.isfile(path + '/precomputed/working_expOpticalDepth.dat'):
+            os.remove(path + '/precomputed/working_expOpticalDepth.dat')
+        if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
+            os.remove(path + '/precomputed/working_VisibilityFunc.dat')
     
     def loadfiles(self):
-    
-        opt_depthL = np.loadtxt(path + '/precomputed/expOpticalDepth.dat')
-        self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
-                                  bounds_error=False, fill_value='extrapolate')
+
 #        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
 #        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='cubic',
 #                                    bounds_error=False, fill_value='extrapolate')
 #        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='cubic',
 #                                    bounds_error=False, fill_value='extrapolate')
         if not self.multiverse:
-            SingleUni = Universe(.1, self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu)
+            SingleUni = Universe(1., self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu)
             self.ct_to_scale = lambda x: SingleUni.ct_to_scale(x)
             self.scale_to_ct = lambda x: SingleUni.scale_to_ct(x)
+            SingleUni.tau_functions()
         else:
-            ManyBrane_Universe(self.Nbrane, .1, [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
+            ManyUni = ManyBrane_Universe(self.Nbrane, 1., [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
                                           [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
                                           [self.OM_nu, self.OM_nu2])
-            self.ct_to_scale = lambda x: ManyBrane_Universe.ct_to_scale(x)
-            self.scale_to_ct = lambda x: ManyBrane_Universe.scale_to_ct(x)
+            self.ct_to_scale = lambda x: ManyUni.ct_to_scale(x)
+            self.scale_to_ct = lambda x: ManyUni.scale_to_ct(x)
+            ManyUni.tau_functions()
+        
+        opt_depthL = np.loadtxt(path + '/precomputed/working_expOpticalDepth.dat')
+#        opt_depthL = np.loadtxt(path + '/precomputed/expOpticalDepth.dat')
+        self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
+                                  bounds_error=False, fill_value='extrapolate')
 
-        visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
-        visfunc = np.log10(visfunc[visfunc[:,1] > 0.])
-        self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic',
-                                  bounds_error=False, fill_value=-100.)
+#        visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
+        visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc.dat')
+        self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic', bounds_error=False, fill_value=-100.)
         self.eta_start = 10.**self.scale_to_ct(visfunc[-1,0])
-    
         return
 
     def kspace_linear_pert(self, kVAL=None):
         #kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
-        
         if kVAL is not None:
             kgrid = [kVAL]
         else:
