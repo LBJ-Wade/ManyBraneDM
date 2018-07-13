@@ -130,7 +130,7 @@ class CMB(object):
 #        visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
         visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc.dat')
         self.Vfunc = interp1d(np.log10(visfunc[:,0]), visfunc[:,1], kind='cubic', bounds_error=False, fill_value=-100.)
-        self.eta_start = 10.**self.scale_to_ct(np.min(visfunc[:,0]))
+        self.eta_start = 10.**self.scale_to_ct(np.log10(np.min(visfunc[:,0])))
         
         return
 
