@@ -129,7 +129,7 @@ class CMB(object):
 
 #        visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
         visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc.dat')
-        self.Vfunc = interp1d(visfunc[:,0], visfunc[:,1], kind='cubic', bounds_error=False, fill_value=-100.)
+        self.Vfunc = interp1d(np.log10(visfunc[:,0]), visfunc[:,1], kind='cubic', bounds_error=False, fill_value=-100.)
         self.eta_start = 10.**self.scale_to_ct(visfunc[-1,0])
         return
 
@@ -304,7 +304,7 @@ class CMB(object):
     
     def visibility(self, eta):
         ln10aval = self.ct_to_scale(np.log10(eta))
-        return 10.**self.Vfunc(ln10aval)
+        return self.Vfunc(ln10aval)
     
     def vis_max_eta(self):
         etaL = np.logspace(-1, np.log10(self.eta0), 2000)
