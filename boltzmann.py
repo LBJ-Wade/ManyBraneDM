@@ -28,7 +28,8 @@ class Universe(object):
         self.omega_R = omega_g + omega_nu
         self.omega_L = 1. - self.omega_M - self.omega_R
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.004746e4
+        self.eta_0 = 1.4387e4
+
         
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -602,7 +603,7 @@ class ManyBrane_Universe(object):
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.004746e4 # 1.4100e4
+        self.eta_0 = 1.4387e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -765,7 +766,7 @@ class ManyBrane_Universe(object):
             tcmbD=2.7255
             print 'Calculating Free Electron Fraction'
             x0 = 1.
-            yvals = np.linspace(3.5, 0, 500)
+            yvals = np.linspace(3.5, -1, 500)
             solvR = odeint(self.xeDiff, x0, yvals)
             x0Convert = 1. / (1. + 10.**yvals)
  
@@ -863,7 +864,7 @@ class ManyBrane_Universe(object):
         if not os.path.isfile(self.Xedk_fileNme):
             print 'Calculating Dark Free Electron Fraction'
             x0 = 1.
-            yvals = np.linspace(3.5, 0, 500)
+            yvals = np.linspace(3.5, -1, 500)
             solvR = odeint(self.xeDiff, x0, yvals)
             x0Convert = 1. / (1. + 10.**yvals)
  
@@ -1361,7 +1362,7 @@ class ManyBrane_Universe(object):
         return self.H_0*np.sqrt(self.omega_R_T*a**-4+self.omega_M_T*a**-3.+self.omega_L_T)
 
     def xe_deta(self, a):
-        return self.Xe(np.log10(a))
+        return 10.**self.Xe(np.log10(a))
 
     def rhoCDM(self, a):
         return self.omega_cdm_T * self.H_0**2. * a**-3.

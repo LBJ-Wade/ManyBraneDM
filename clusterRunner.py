@@ -3,15 +3,15 @@ import os
 from CMB import *
 #from multiprocessing import Pool
 
-Multiverse = True
+Multiverse = False
 Nbranes = 1e7
 PressureFac = 1e-3
 extraCDM = 0.000
 
 if not Multiverse:
     Ftag = 'StandardUniverse'
-    OM_b = 0.0482
-    OM_c = 0.2637
+    OM_b = 0.0484
+    OM_c = 0.258
     OM_g = 5.38e-5
     OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 
@@ -21,9 +21,9 @@ if not Multiverse:
     OM_L2 = 0.
 else:
     Ftag = 'MultiBrane'
-    omega_cdm = 0.2637
+    omega_cdm = 0.258
     
-    OM_b = 0.0482
+    OM_b = 0.0484
     OM_c = 0.
     OM_g = 5.38e-5
     OM_L = 0.
@@ -40,7 +40,7 @@ else:
         OM_g2 = PressureFac*(OM_g/OM_b)*OM_b2
         OM_L2 = 0.
 
-lmax_Pert = 200
+lmax_Pert = 10
 process_Num = 1
 
 compute_LP = True

@@ -48,7 +48,7 @@ class CMB(object):
         
         self.multiverse = multiverse
         
-        self.eta0 = 1.004746e4 #1.4100e4
+        self.eta0 = 1.4387e4
         self.init_pert = -1/6.
         
         ell_val = range(self.lmin, self.lmax, 10)

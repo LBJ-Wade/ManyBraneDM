@@ -20,12 +20,16 @@ mpl.rcParams['ytick.major.size']=8
 mpl.rcParams['xtick.labelsize']=18
 mpl.rcParams['ytick.labelsize']=18
 
-kval = 1.3974e-01
-Nbrane = 50000
+kval = 0.1
+Nbrane = 1e7
+pressFac = 1e-6
+eCDM = 0.00
+
 Fname = 'StandardUniverse_FieldEvolution_{:.4e}.dat'.format(kval)
 Svname = 'StandardField_kval_{:.4e}.pdf'.format(kval)
-#Fname = 'MultiBrane_FieldEvolution_{:.4e}_Nbrane_{:.0f}.dat'.format(kval, Nbrane)
-#Svname = 'MultiverseField_kval_{:.4e}_Nbrane_{:.0f}.pdf'.format(kval, Nbrane)
+
+#Fname = 'MultiBrane_FieldEvolution_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(kval, Nbrane, pressFac, eCDM)
+#Svname = 'MultiverseField_kval_{:.4e}_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.pdf'.format(kval, Nbrane, pressFac, eCDM)
 
 path = os.getcwd()
 
