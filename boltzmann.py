@@ -174,25 +174,6 @@ class Universe(object):
             solvR = odeint(self.xeDiff, x0, yvals)
             x0Convert = 1. / (1. + 10.**yvals)
  
-#            x0 = 1.0
-#            yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 5000)
-#            solvR = odeint(self.xeDiff, x0, yvals)
-#            x0Convert = yvals*tcmbD*8.617e-5/13.6
-
-#            yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 5000)
-#            solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
-#            x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
-#
-#            yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 5000)
-#            solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
-#            x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
-#
-#            he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
-#                                       bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
-#            he2_interp = 10.**interp1d(np.log10(x0Convert2[solvR_He2.flatten() > 0]), np.log10(solvR_He2[solvR_He2 > 0]), kind='linear',
-#                                       bounds_error=False, fill_value=-100)(np.log10(x0Convert))
-#
-#            self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
             self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]*1.079))
             np.savetxt(self.Xe_fileNme, self.Xe_dark)
         else:
@@ -233,8 +214,7 @@ class Universe(object):
             Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2*(1-val[0])*n_b*Yp) * GeV_cm**3.
             L2g = 8.227 / 2.998e10 * Mpc_to_cm
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
-            #print Lalpha, Cr, L2g, beta2
-            
+        
         Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
     
@@ -303,12 +283,12 @@ class Universe(object):
         self.y_vector = [y_st]
         
         # TESTING
-        aL = np.logspace(-9, 0, 300)
-        xeV = 10.**self.Xe(np.log10(aL))
-        csT = self.Cs_Sqr(aL)
-        tbT = 10.**self.Tb(np.log10(aL))
-        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
-        exit()
+#        aL = np.logspace(-9, 0, 300)
+#        xeV = 10.**self.Xe(np.log10(aL))
+#        csT = self.Cs_Sqr(aL)
+#        tbT = 10.**self.Tb(np.log10(aL))
+#        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
+#        exit()
 
         try_count = 0.
         try_max = 20.
@@ -783,28 +763,13 @@ class ManyBrane_Universe(object):
         self.Xe_fileNme = path + '/precomputed/xe_working.dat'
         if not os.path.isfile(self.Xe_fileNme):
             tcmbD=2.7255
-            
             print 'Calculating Free Electron Fraction'
             x0 = 1.
-            yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 5000)
+            yvals = np.linspace(3.5, 0, 500)
             solvR = odeint(self.xeDiff, x0, yvals)
-            x0Convert = yvals*tcmbD*8.617e-5/13.6
-            
-            yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 5000)
-            solvR_He1 = odeint(self.xeDiff, x0, yvals1, args=(False, True))*.163640/2.
-            x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
-
-            yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 5000)
-            solvR_He2 = odeint(self.xeDiff, x0, yvals2, args=(False, False))*.163640/2.
-            x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
-
-            he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
-                                       bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
-            he2_interp = 10.**interp1d(np.log10(x0Convert2[solvR_He2.flatten() > 0]), np.log10(solvR_He2[solvR_He2 > 0]), kind='linear',
-                                       bounds_error=False, fill_value=-100)(np.log10(x0Convert))
-
-            self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
-    #        self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]))
+            x0Convert = 1. / (1. + 10.**yvals)
+ 
+            self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]*1.079))
             np.savetxt(self.Xe_fileNme, self.Xe_dark)
         else:
             self.Xe_dark = np.loadtxt(self.Xe_fileNme)
@@ -812,6 +777,7 @@ class ManyBrane_Universe(object):
         return
     
     def xeDiff(self, val, y, hydrogen=True, first=True):
+        yy = 10.**y
         tcmbD=2.7255
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
@@ -825,29 +791,28 @@ class ManyBrane_Universe(object):
         GeV_cm = 5.06e13
         Mpc_to_cm = 3.086e24
         me = 5.11e-4 # GeV
-        aval = tcmbD * kb * y / ep0
+        aval = 1. / (1.+yy)
         Yp = 0.245
-        if hydrogen:
-            n_b = 2.503e-7 / aval**3. * (1. - Yp)
-        else:
-            n_b = 2.503e-7 / aval**3. * Yp
-    
-        Tg = tcmbD / aval * kb # GeV
+        
+        n_b = 2.503e-7 / aval**3.
+        Tg = tcmbD * (1. + yy)
         hub = self.hubble(aval)
         FScsnt = 7.29e-3
         
-        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(y)*np.log(y)*(1.9729744e-14)**2. # cm^2
-        beta = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-y)/(1.9729744e-14)**3. # 1/cm
-        beta2 = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-0.25*y)/(1.9729744e-14)**3.*Mpc_to_cm # 1/Mpc
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tcmbD*(1.+yy)))*np.log(ep0/(kb*tcmbD*(1.+yy)))/(GeV_cm**2.) # cm^2
+        beta = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tcmbD*(1.+yy)))*GeV_cm**3. # 1/cm
+        beta2 = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tcmbD*(1.+yy)))*GeV_cm**3.*Mpc_to_cm
         
         if val[0] > 0.999:
             Cr = 1.
         else:
-            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2.*n_b*(1.-val[0])) * GeV_cm**3.
+            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2*(1-val[0])*n_b*Yp) * GeV_cm**3.
             L2g = 8.227 / 2.998e10 * Mpc_to_cm
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
-        Value = 1./(y*hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        
+        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
+        
     
     def Tab_dark_Temp(self):
         self.tbDk_fileNme = path + '/precomputed/tb_dark_working.dat'
@@ -890,36 +855,27 @@ class ManyBrane_Universe(object):
         csSq = 2.998e8**2.
         return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
     
+    
+    
     def xeDark_Tab(self):
         tcmbD=self.darkCMB_T
         self.Xedk_fileNme = path + '/precomputed/xe_dark_working.dat'
         if not os.path.isfile(self.Xedk_fileNme):
             print 'Calculating Dark Free Electron Fraction'
             x0 = 1.
-            yvals = np.logspace(0., np.log10(13.6/(tcmbD*8.617e-5)), 1000)
-            solvR = odeint(self.xeDiff_Dk, x0, yvals)
-            x0Convert = yvals*tcmbD*8.617e-5/13.6
-
-            yvals1 = np.logspace(0., np.log10(54.4/(tcmbD*8.617e-5)), 1000)
-            solvR_He1 = odeint(self.xeDiff_Dk, x0, yvals1, args=(False, True))*.163640/2.
-            x0Convert1 = yvals1*tcmbD*8.617e-5/54.4
-            yvals2 = np.logspace(0., np.log10(24.6/(tcmbD*8.617e-5)), 1000)
-            solvR_He2 = odeint(self.xeDiff_Dk, x0, yvals2, args=(False, False))*.163640/2.
-            x0Convert2 = yvals2*tcmbD*8.617e-5/24.6
-
-            he1_interp = 10.**interp1d(np.log10(x0Convert1), np.log10(solvR_He1[:,0]), kind='linear',
-                                       bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
-            he2_interp = 10.**interp1d(np.log10(x0Convert2), np.log10(solvR_He2[:,0]), kind='linear',
-                                       bounds_error=False, fill_value='extrapolate')(np.log10(x0Convert))
-
-            self.Xe_dark = np.column_stack((x0Convert, (he1_interp + he2_interp + solvR[:,0])))
-            np.savetxt(self.Xedk_fileNme, self.Xe_dark)
+            yvals = np.linspace(3.5, 0, 500)
+            solvR = odeint(self.xeDiff, x0, yvals)
+            x0Convert = 1. / (1. + 10.**yvals)
+ 
+            self.Xe_dark2 = np.column_stack((x0Convert, solvR[:,0]*1.079))
+            np.savetxt(self.Xedk_fileNme, self.Xe_dark2)
         else:
-            self.Xe_dark = np.loadtxt(self.Xedk_fileNme)
-        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
+            self.Xe_dark2 = np.loadtxt(self.Xedk_fileNme)
+        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark2[:,0]), np.log10(self.Xe_dark2[:,1]), bounds_error=False, fill_value='extrapolate')
         return
     
     def xeDiff_Dk(self, val, y, hydrogen=True, first=True):
+        yy = 10.**y
         tcmbD=self.darkCMB_T
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
@@ -933,28 +889,27 @@ class ManyBrane_Universe(object):
         GeV_cm = 5.06e13
         Mpc_to_cm = 3.086e24
         me = 5.11e-4 # GeV
-        aval = tcmbD * kb * y / ep0
-        Yp=self.yp_prime
-        if hydrogen:
-            n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
-        else:
-            n_b = 2.503e-7 / aval**3. * Yp * self.omega_b[1]/self.omega_b[0]
-    
-        Tg = tcmbD / aval * kb # GeV
-        hub = self.hubble(aval)
-        FScsnt = 7.297e-3
         
-        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(y)*np.log(y)*(1.9729744e-14)**2. # cm^2
-        beta = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-y)/(1.9729744e-14)**3. # 1/cm
-        beta2 = alpha2*(me*Tg/(2.*np.pi))**(3./2.)*np.exp(-0.25*y)/(1.9729744e-14)**3.*Mpc_to_cm # 1/Mpc
+        aval = 1. / (1.+yy)
+        Yp=self.yp_prime
+        
+        n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
+        Tg = tcmbD * (1. + yy)
+        hub = self.hubble(aval)
+        FScsnt = 7.29e-3
+        
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tcmbD*(1.+yy)))*np.log(ep0/(kb*tcmbD*(1.+yy)))/(GeV_cm**2.) # cm^2
+        beta = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tcmbD*(1.+yy)))*GeV_cm**3. # 1/cm
+        beta2 = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tcmbD*(1.+yy)))*GeV_cm**3.*Mpc_to_cm
         
         if val[0] > 0.999:
             Cr = 1.
         else:
-            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2.*n_b*(1.-val[0])) * GeV_cm**3.
+            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2*(1-val[0])*n_b*Yp) * GeV_cm**3.
             L2g = 8.227 / 2.998e10 * Mpc_to_cm
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
-        Value = 1./(y*hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        
+        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
     
     def tau_functions(self):
