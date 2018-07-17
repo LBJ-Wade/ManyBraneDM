@@ -247,7 +247,10 @@ class CMB(object):
         ThetaFiles = glob.glob(t_file_nmes)
         klist = np.array([])
         for i in range(len(ThetaFiles)):
-            kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
+            if not self.multiverse:
+                kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
+            else:
+                kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('_Nbrane_')])
             klist = np.append(klist, kval)
         
         klist = np.sort(klist)
