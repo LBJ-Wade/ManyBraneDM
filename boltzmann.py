@@ -171,7 +171,11 @@ class Universe(object):
         mol_wei[facxe >= 1] = 0.6
         mol_wei[facxe < 1] = 1.22
         Tb = 10.**self.Tb(np.log10(a))
-        extraPT = self.dotT([Tb], np.log10(1./a - 1.), facxe) * a
+        if a < 1:
+            lgZ = np.log10(1./a - 1.)
+        else:
+            lgZ = -10
+        extraPT = self.dotT([Tb], lgZ, facxe) * a
         
         return kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
     
