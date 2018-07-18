@@ -54,7 +54,12 @@ class CMB(object):
         ell_val = range(self.lmin, self.lmax, 10)
         self.clearfiles()
         
-        self.ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table.dat'
+        self.ThetaFile = path + '/OutputFiles/' + self.Ftag
+        if self.multiverse:
+            self.ThetaFile += '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}_ThetaCMB_Table.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
+        else:
+            self.ThetaFile += '.dat'
+
         self.ThetaTabTot = np.zeros((self.knum+1, len(ell_val)))
         self.ThetaTabTot[0,:] = ell_val
 
@@ -247,7 +252,10 @@ class CMB(object):
         ThetaFiles = glob.glob(t_file_nmes)
         klist = np.array([])
         for i in range(len(ThetaFiles)):
-            kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
+            if not self.multiverse:
+                kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('.dat')])
+            else:
+                kval = float(ThetaFiles[i][ThetaFiles[i].find('kval_')+5:ThetaFiles[i].find('_Nbrane_')])
             klist = np.append(klist, kval)
         
         klist = np.sort(klist)
@@ -262,13 +270,8 @@ class CMB(object):
         return
 
     def computeCMB(self):
-        ThetaFile = path + '/OutputFiles/' + self.Ftag + '_ThetaCMB_Table'
-        if self.multiverse:
-            ThetaFile += '_Nbrane_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}.dat'.format(self.Nbrane, self.PressFac, self.eCDM)
-        else:
-            ThetaFile += '.dat'
         
-        thetaTab = np.loadtxt(ThetaFile)
+        thetaTab = np.loadtxt(self.ThetaFile)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.

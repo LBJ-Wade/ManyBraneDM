@@ -57,7 +57,6 @@ class Universe(object):
             self.combined_vector[6+i*3] = self.Theta_P_Dot[i] = []
             self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
-#        self.load_funcs()
         self.compute_funcs()
 
         self.testing = testing
@@ -82,8 +81,8 @@ class Universe(object):
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
             
-        self.xe_Tab()
-        self.Tab_Temp()
+        self.Thermal_sln()
+
 
     def clearfiles(self):
         if os.path.isfile(path + '/precomputed/xe_working.dat'):
@@ -96,39 +95,49 @@ class Universe(object):
         if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
             os.remove(path + '/precomputed/working_VisibilityFunc.dat')
 
-    def Tab_Temp(self):
+    def Thermal_sln(self):
         self.tb_fileNme = path + '/precomputed/tb_working.dat'
-        if not os.path.isfile(self.tb_fileNme):
-        
-            print 'Calculating Tb...'
-            y0 = np.log(self.scale_a(np.min([1e-3/self.k, 1e-1/0.7])))
-            
-            Tg_0 = 2.7255 / np.exp(y0)
-            yvals = np.linspace(y0, 0., 1000)
-            solvR = odeint(self.dotT, Tg_0, yvals)
-            self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
-            self.Tb_drk[self.Tb_drk<0] = 1e-20
+        self.Xe_fileNme = path + '/precomputed/xe_working.dat'
+        if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme):
+            tvals = np.linspace(3.5, -1, 500)
+            y0 = [1., 2.7255 * (1. + 10.**tvals[0])]
+         
+            val_sln = odeint(self.thermal_funcs, y0, tvals)
+            avals = 1. / (1. + 10.**tvals)
+            self.Tb_drk = np.column_stack((avals, val_sln[:, 1]))
             np.savetxt(self.tb_fileNme, self.Tb_drk)
+            self.Xe_dark = np.column_stack((avals, val_sln[:,0]))
+            np.savetxt(self.Xe_fileNme, self.Xe_dark)
+    
         else:
             self.Tb_drk = np.loadtxt(self.tb_fileNme)
+            self.Xe_dark = np.loadtxt(self.Xe_fileNme)
+        
         self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
         return
-    
-    def dotT(self, T, y):
+
+
+    def thermal_funcs(self, val, z):
+        xe, T = val
+        return [self.xeDiff([xe], z, T)[0], self.dotT([T], z, xe)]
+
+    def dotT(self, T, lgz, xe):
         kb = 8.617e-5/1e9 # Gev/K
         thompson_xsec = 6.65e-25 # cm^2
-        aval = np.exp(y)
+        aval = 1. / (1. + 10.**lgz)
         Yp = 0.245
         Mpc_to_cm = 3.086e24
-        facxe = 10.**self.Xe(np.log10(aval))
-        mol_wei = np.zeros_like(facxe)
-        mol_wei[facxe >= 1] = 0.6
-        mol_wei[facxe < 1] = 1.22
-        n_b = 2.503e-7 / aval**3.
+        if xe >= 1.:
+            mol_wei = 0.6
+        else:
+            mol_wei = 1.22
+
+        n_b = 2.503e-7*(1.+10.**lgz)**3.
         hub = self.hubble(aval)
         omega_Rat = self.omega_g / self.omega_b
-        
-        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(facxe*n_b*thompson_xsec/hub)*(2.7255/aval - T[0])*Mpc_to_cm)
+        jacF = - 1. * (10.**lgz * np.log(10.))
+        return (-2.*T[0]*aval + (1./hub)*(8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xe*n_b*thompson_xsec)*(2.7255*(1.+10.**lgz) - T[0])*Mpc_to_cm)*jacF
     
     def Cs_Sqr(self, a):
         kb = 8.617e-5/1e9 # GeV/K
@@ -137,30 +146,19 @@ class Universe(object):
         mol_wei[facxe >= 1] = 0.6
         mol_wei[facxe < 1] = 1.22
         Tb = 10.**self.Tb(np.log10(a))
-        extraPT = self.dotT([Tb], np.log(a)) * a
-        
-        return kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
-    
-    def xe_Tab(self):
-        self.Xe_fileNme = path + '/precomputed/xe_working.dat'
-        if not os.path.isfile(self.Xe_fileNme):
-            tcmbD=2.7255
-            print 'Calculating Free Electron Fraction'
-            x0 = 1.
-            yvals = np.linspace(3.5, 0, 500)
-            solvR = odeint(self.xeDiff, x0, yvals)
-            x0Convert = 1. / (1. + 10.**yvals)
- 
-            self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]*1.079))
-            np.savetxt(self.Xe_fileNme, self.Xe_dark)
+        if a < 1:
+            lgZ = np.log10(1./a - 1.)
         else:
-            self.Xe_dark = np.loadtxt(self.Xe_fileNme)
-        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
-        return
+            lgZ = -10
+        extraPT = self.dotT([Tb], lgZ, facxe) *(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
+        val_r = kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
+        if val_r < 0.:
+            return 0.
+        return val_r
     
-    def xeDiff(self, val, y, hydrogen=True, first=True):
+    def xeDiff(self, val, y, tgas, hydrogen=True, first=True):
         yy = 10.**y
-        tcmbD=2.7255
+        
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
         else:
@@ -177,13 +175,12 @@ class Universe(object):
         Yp = 0.245
         
         n_b = 2.503e-7 / aval**3.
-        Tg = tcmbD * (1. + yy)
         hub = self.hubble(aval)
         FScsnt = 7.29e-3
         
-        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tcmbD*(1.+yy)))*np.log(ep0/(kb*tcmbD*(1.+yy)))/(GeV_cm**2.) # cm^2
-        beta = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tcmbD*(1.+yy)))*GeV_cm**3. # 1/cm
-        beta2 = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tcmbD*(1.+yy)))*GeV_cm**3.*Mpc_to_cm
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tgas))*np.log(ep0/(kb*tgas))/(GeV_cm**2.) # cm^2
+        beta = alpha2*(me*(kb*tgas)/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tgas))*GeV_cm**3. # 1/cm
+        beta2 = alpha2*(me*(kb*tgas)/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tgas))*GeV_cm**3.*Mpc_to_cm
         
         if val[0] > 0.999:
             Cr = 1.
@@ -192,7 +189,7 @@ class Universe(object):
             L2g = 8.227 / 2.998e10 * Mpc_to_cm
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
         
-        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1.-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
     
     def tau_functions(self):
@@ -649,10 +646,11 @@ class ManyBrane_Universe(object):
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
 
-        self.xe_Tab()
-        self.Tab_Temp()
-        self.xeDark_Tab()
-        self.Tab_dark_Temp()
+        self.Thermal_sln()
+#        self.xe_Tab()
+#        self.Tab_Temp()
+#        self.xeDark_Tab()
+#        self.Tab_dark_Temp()
         return
 
     def clearfiles(self):
@@ -671,189 +669,114 @@ class ManyBrane_Universe(object):
         if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
             os.remove(path + '/precomputed/working_VisibilityFunc.dat')
         return
-                                    
-#    def load_funcs(self):
-#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-
-#        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
-#        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-        #xe_load = np.loadtxt(path + '/precomputed/Xe_evol.dat')
-#        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
-#        self.Xe = interp1d(np.log10(xe_load[:,0]), xe_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-#        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
-#        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-#        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
-#        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-#        return
-
-    def Tab_Temp(self):
+    
+    def Thermal_sln(self):
         self.tb_fileNme = path + '/precomputed/tb_working.dat'
-        if not os.path.isfile(self.tb_fileNme):
-        
-            print 'Calculating Tb...'
-            y0 = np.log(self.scale_a(np.min([1e-3/self.k, 1e-1/0.7])))
-            
-            Tg_0 = 2.7255 / np.exp(y0)
-            yvals = np.linspace(y0, 0., 1000)
-            solvR = odeint(self.dotT, Tg_0, yvals)
-            self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
-            self.Tb_drk[self.Tb_drk<0] = 1e-20
-            np.savetxt(self.tb_fileNme, self.Tb_drk)
-        else:
-            self.Tb_drk = np.loadtxt(self.tb_fileNme)
-        self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
-        return
-    
-    def dotT(self, T, y):
-        kb = 8.617e-5/1e9 # Gev/K
-        thompson_xsec = 6.65e-25 # cm^2
-        aval = np.exp(y)
-        Yp = 0.245
-        Mpc_to_cm = 3.086e24
-        facxe = 10.**self.Xe(np.log10(aval))
-        mol_wei = np.zeros_like(facxe)
-        mol_wei[facxe >= 1] = 0.6
-        mol_wei[facxe < 1] = 1.22
-        n_b = 2.503e-7 / aval**3.
-        hub = self.hubble(aval)
-        omega_Rat = self.omega_g[0] / self.omega_b[0]
-        
-        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(facxe*n_b*thompson_xsec/hub)*(2.7255/aval - T[0])*Mpc_to_cm)
-    
-    def Cs_Sqr(self, a):
-        kb = 8.617e-5/1e9 # GeV/K
-        facxe = 10.**self.Xe(np.log10(a))
-        mol_wei = np.zeros_like(facxe)
-        mol_wei[facxe >= 1] = 0.6
-        mol_wei[facxe < 1] = 1.22
-        Tb = 10.**self.Tb(np.log10(a))
-        extraPT = self.dotT([Tb], np.log(a)) * a
-        
-        return kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
-    
-    def xe_Tab(self):
         self.Xe_fileNme = path + '/precomputed/xe_working.dat'
-        if not os.path.isfile(self.Xe_fileNme):
-            tcmbD=2.7255
-            print 'Calculating Free Electron Fraction'
-            x0 = 1.
-            yvals = np.linspace(3.5, -1, 500)
-            solvR = odeint(self.xeDiff, x0, yvals)
-            x0Convert = 1. / (1. + 10.**yvals)
- 
-            self.Xe_dark = np.column_stack((x0Convert, solvR[:,0]*1.079))
-            np.savetxt(self.Xe_fileNme, self.Xe_dark)
-        else:
-            self.Xe_dark = np.loadtxt(self.Xe_fileNme)
-        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
-        return
-    
-    def xeDiff(self, val, y, hydrogen=True, first=True):
-        yy = 10.**y
-        tcmbD=2.7255
-        if hydrogen:
-            ep0 = 13.6/1e9  # GeV
-        else:
-            if first:
-                ep0 = 54.4/1e9
-            else:
-                ep0 = 24.6/1e9
-
-        kb = 8.617e-5/1e9 # Gev/K
-        GeV_cm = 5.06e13
-        Mpc_to_cm = 3.086e24
-        me = 5.11e-4 # GeV
-        aval = 1. / (1.+yy)
-        Yp = 0.245
         
-        n_b = 2.503e-7 / aval**3.
-        Tg = tcmbD * (1. + yy)
-        hub = self.hubble(aval)
-        FScsnt = 7.29e-3
-        
-        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tcmbD*(1.+yy)))*np.log(ep0/(kb*tcmbD*(1.+yy)))/(GeV_cm**2.) # cm^2
-        beta = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tcmbD*(1.+yy)))*GeV_cm**3. # 1/cm
-        beta2 = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tcmbD*(1.+yy)))*GeV_cm**3.*Mpc_to_cm
-        
-        if val[0] > 0.999:
-            Cr = 1.
-        else:
-            Lalpha = (3.*ep0)**3.*hub / (64.*np.pi**2*(1-val[0])*n_b*Yp) * GeV_cm**3.
-            L2g = 8.227 / 2.998e10 * Mpc_to_cm
-            Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
-        
-        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
-        return [Value]
-        
-    
-    def Tab_dark_Temp(self):
         self.tbDk_fileNme = path + '/precomputed/tb_dark_working.dat'
-        if not os.path.isfile(self.tbDk_fileNme):
-            print 'Calculating Tb evolution of Dark Brane...'
-            y0 = np.log(self.scale_a(np.min([1e-3/self.k, 1e-1/0.7])))
-
-            Tg_0 = self.darkCMB_T / np.exp(y0)
-            yvals = np.linspace(y0, 0., 1000)
-            solvR = odeint(self.dotT_Dk, Tg_0, yvals)
-            self.Tb_drk = np.column_stack((np.exp(yvals), solvR))
-            #np.savetxt(path + '/precomputed/TEST_DARK_TEMP.dat',self.Tb_drk)
-            self.Tb_drk[self.Tb_drk<0] = 1e-20
+        self.Xedk_fileNme = path + '/precomputed/xe_dark_working.dat'
+        
+        if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme):
+            tvals = np.linspace(3.5, -1, 1000)
+            y0 = [1., 2.7255 * (1. + 10.**tvals[0]), 1., self.darkCMB_T * (1. + 10.**tvals[0])]
+         
+            val_sln = odeint(self.thermal_funcs, y0, tvals)
+            avals = 1. / (1. + 10.**tvals)
+            self.Tb_1 = np.column_stack((avals, val_sln[:, 1]))
+            np.savetxt(self.tb_fileNme, self.Tb_1)
+            self.Xe_1 = np.column_stack((avals, val_sln[:,0]))
+            np.savetxt(self.Xe_fileNme, self.Xe_1)
+            self.Xe_dark = np.column_stack((avals, val_sln[:,2]))
+            np.savetxt(self.Xedk_fileNme, self.Xe_dark)
+            self.Tb_drk = np.column_stack((avals, val_sln[:,3]))
             np.savetxt(self.tbDk_fileNme, self.Tb_drk)
         else:
+            self.Tb_1 = np.loadtxt(self.tb_fileNme)
+            self.Xe_1 = np.loadtxt(self.Xe_fileNme)
             self.Tb_drk = np.loadtxt(self.tbDk_fileNme)
+            self.Xe_dark = np.loadtxt(self.Xedk_fileNme)
         
-        self.Tb_DARK = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Tb = interp1d(np.log10(self.Tb_1[:,0]), np.log10(self.Tb_1[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Xe = interp1d(np.log10(self.Xe_1[:,0]), np.log10(self.Xe_1[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Tb_D = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=0.)
         return
-    
-    def dotT_Dk(self, T, y):
-        kb = 8.617e-5/1e9 # Gev/K
-        aval = np.exp(y)
-        Yp = self.yp_prime
-        Mpc_to_cm = 3.086e24
-        facxe = 10.**self.XE_DARK_B(np.log10(aval))
-        mol_wei = (0.7 * facxe + (1. - facxe)*1.735) * 0.938
-        n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
-        hub = self.hubble(aval)
-        omega_Rat = self.omega_g[1]/self.omega_b[1]
-        xeval = 10.**self.XE_DARK_B(np.log10(aval))
-        return (-2.*T[0] + (8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xeval*n_b*6.65e-25/hub)*(self.darkCMB_T/aval - T[0])*Mpc_to_cm)
-    
-    def Cs_Sqr_Dark(self, a):
-        kb = 1.3806e-23
-        facxe = 10.**self.XE_DARK_B(np.log10(a))
-        mol_wei = (0.7 * facxe + (1. - facxe)*1.735) * 0.938
-        Tb = 10.**self.Tb_DARK(np.log10(a))
-        extraPT = self.dotT([Tb], np.log(a)) / a
-        csSq = 2.998e8**2.
-        return kb*Tb/mol_wei*(1./3. - extraPT/Tb)/csSq
-    
-    
-    
-    def xeDark_Tab(self):
-        tcmbD=self.darkCMB_T
-        self.Xedk_fileNme = path + '/precomputed/xe_dark_working.dat'
-        if not os.path.isfile(self.Xedk_fileNme):
-            print 'Calculating Dark Free Electron Fraction'
-            x0 = 1.
-            yvals = np.linspace(3.5, -1, 500)
-            solvR = odeint(self.xeDiff, x0, yvals)
-            x0Convert = 1. / (1. + 10.**yvals)
- 
-            self.Xe_dark2 = np.column_stack((x0Convert, solvR[:,0]*1.079))
-            np.savetxt(self.Xedk_fileNme, self.Xe_dark2)
+
+    def Tb_DARK(self, a):
+        
+        if a < 1:
+            z = (1./a - 1.)
         else:
-            self.Xe_dark2 = np.loadtxt(self.Xedk_fileNme)
-        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark2[:,0]), np.log10(self.Xe_dark2[:,1]), bounds_error=False, fill_value='extrapolate')
-        return
+            z = 0.1
+        
+        if z <= 10.**3.5:
+            return 10.**self.Tb_D(np.log10(a))
+        else:
+            #print (z - (1./self.Tb_drk[0,0] - 1.)), self.Tb_drk[0,1]
+            return (z - (1./self.Tb_drk[0,0] - 1.))*self.Tb_drk[0,1] + self.Tb_drk[0,1]
+
+    def thermal_funcs(self, val, z):
+        xe, T, xeD, TD = val
+        return [self.xeDiff([xe], z, T)[0], self.dotT([T], z, xe), self.xeDiff([xeD], z, TD, dark=True)[0], self.dotT([TD], z, xeD, dark=True)]
+
+    def dotT(self, T, lgz, xe, dark=False):
+        kb = 8.617e-5/1e9 # Gev/K
+        thompson_xsec = 6.65e-25 # cm^2
+        aval = 1. / (1. + 10.**lgz)
+        if not dark:
+            Yp = 0.245
+        else:
+            Yp = self.yp_prime
+        
+        Mpc_to_cm = 3.086e24
+        
+        if xe >= 1.:
+            mol_wei = 0.5*(1.-Yp) + Yp*1.33
+        else:
+            mol_wei = 1.*(1.-Yp) + Yp*4.
+        
+        n_b = 2.503e-7*(1.+10.**lgz)**3.
+        if dark:
+            n_b *= self.omega_b[1]/self.omega_b[0]
+        hub = self.hubble(aval)
+        if dark:
+            omega_Rat = self.omega_g[1] / self.omega_b[1]
+        else:
+            omega_Rat = self.omega_g[0] / self.omega_b[0]
+        jacF = - 1. * (10.**lgz * np.log(10.))
+        return (-2.*T[0]*aval + (1./hub)*(8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xe*n_b*thompson_xsec)*(2.7255*(1.+10.**lgz) - T[0])*Mpc_to_cm)*jacF
     
-    def xeDiff_Dk(self, val, y, hydrogen=True, first=True):
+    def Cs_Sqr(self, a, dark=False):
+        kb = 8.617e-5/1e9 # GeV/K
+        
+        if not dark:
+            facxe = 10.**self.Xe(np.log10(a))
+            Yp = 0.245
+            Tb = 10.**self.Tb(np.log10(a))
+        else:
+            facxe = 10.**self.XE_DARK_B(np.log10(a))
+            Yp = self.yp_prime
+            Tb = self.Tb_DARK(a)
+    
+        mol_wei = np.zeros_like(facxe)
+        mol_wei[facxe >= 1] = 0.5*(1.-Yp) + Yp*1.33
+        mol_wei[facxe < 1] = 1.*(1.-Yp) + Yp*4.
+        
+        if a < 1:
+            lgZ = np.log10(1./a - 1.)
+        else:
+            lgZ = -10
+        
+        extraPT = self.dotT([Tb], lgZ, facxe, dark=dark)*(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
+        val_r = kb*Tb/mol_wei*(1. - 1./3. * extraPT)
+        if val_r < 0.:
+            return 0.
+        return val_r
+    
+    def xeDiff(self, val, y, tgas, dark=False, hydrogen=True, first=True):
         yy = 10.**y
-        tcmbD=self.darkCMB_T
+     
         if hydrogen:
             ep0 = 13.6/1e9  # GeV
         else:
@@ -866,18 +789,20 @@ class ManyBrane_Universe(object):
         GeV_cm = 5.06e13
         Mpc_to_cm = 3.086e24
         me = 5.11e-4 # GeV
-        
         aval = 1. / (1.+yy)
-        Yp=self.yp_prime
-        
-        n_b = 2.503e-7 / aval**3. * self.omega_b[1]/self.omega_b[0]
-        Tg = tcmbD * (1. + yy)
+        if not dark:
+            Yp = 0.245
+        else:
+            Yp = self.yp_prime
+        n_b = 2.503e-7 / aval**3.
+        if dark:
+            n_b *= self.omega_b[1]/self.omega_b[0]
         hub = self.hubble(aval)
         FScsnt = 7.29e-3
         
-        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tcmbD*(1.+yy)))*np.log(ep0/(kb*tcmbD*(1.+yy)))/(GeV_cm**2.) # cm^2
-        beta = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tcmbD*(1.+yy)))*GeV_cm**3. # 1/cm
-        beta2 = alpha2*(me*(kb*tcmbD*(1.+yy))/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tcmbD*(1.+yy)))*GeV_cm**3.*Mpc_to_cm
+        alpha2 = 9.78*(FScsnt/me)**2.*np.sqrt(ep0/(kb*tgas))*np.log(ep0/(kb*tgas))/(GeV_cm**2.) # cm^2
+        beta = alpha2*(me*(kb*tgas)/(2.*np.pi))**(3./2.)*np.exp(-ep0/(kb*tgas))*GeV_cm**3. # 1/cm
+        beta2 = alpha2*(me*(kb*tgas)/(2.*np.pi))**(3./2.)*np.exp(-ep0/(4.*kb*tgas))*GeV_cm**3.*Mpc_to_cm
         
         if val[0] > 0.999:
             Cr = 1.
@@ -886,8 +811,9 @@ class ManyBrane_Universe(object):
             L2g = 8.227 / 2.998e10 * Mpc_to_cm
             Cr = (Lalpha + L2g) / (Lalpha + L2g + beta2)
         
-        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
+        Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1.-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
+    
     
     def tau_functions(self):
         self.fileN_optdep = path + '/precomputed/working_expOpticalDepth.dat'
@@ -1071,8 +997,9 @@ class ManyBrane_Universe(object):
         xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
         dTa_D = -xeDk*(1.-self.yp_prime)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
-        CsndB = self.Cs_Sqr(a_val)
-        CsndB_D = self.Cs_Sqr_Dark(a_val)
+        CsndB = self.Cs_Sqr(a_val, dark=False)
+        CsndB_D = self.Cs_Sqr(a_val, dark=True)
+        
         
         if self.testing:
             self.aLIST.append(a_val)
