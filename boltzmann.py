@@ -96,30 +96,6 @@ class Universe(object):
         if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
             os.remove(path + '/precomputed/working_VisibilityFunc.dat')
 
-#    def load_funcs(self):
-#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-
-#        self.dtau_load = np.loadtxt(path + '/precomputed/dtau_CLASS.dat')
-#        self.dtau_interp = interp1d(np.log10(self.dtau_load[:,0]), np.log10(self.dtau_load[:,1]), kind='linear',
-#                                    bounds_error=False, fill_value='extrapolate')
-        #xe_load = np.loadtxt(path + '/precomputed/Xe_evol.dat')
-#        xe_load = np.loadtxt(path + '/precomputed/CLASS_xe.dat')
-#
-#        self.Xe = interp1d(np.log10(xe_load[:,0]), np.log10(xe_load[:,1]), kind='linear', bounds_error=False, fill_value='extrapolate')
-
-#        refst = np.loadtxt('/Users/samuelwitte/Desktop/PBH21/External_tables/CosmoRec.HI.nS_eff_500.nH_3.nHe_3.H_abs.fcorr.Q_lines.X_Recfast.dat')
-#        self.Tb = interp1d(np.log10(1./(1.+refst[:,0])), np.log10(refst[:,2]), bounds_error=False, fill_value='extrapolate')
-
-#        cs_load = np.loadtxt(path + '/precomputed/Csound_CLASS.dat')
-#        self.Csnd_interp = interp1d(np.log10(cs_load[:,0]), cs_load[:,0]*cs_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-#        hubble_load = np.log10(np.loadtxt(path + '/precomputed/Hubble_CT.dat'))
-#        self.hubble_CT = interp1d(hubble_load[:,0], hubble_load[:,1], kind='linear', bounds_error=False, fill_value='extrapolate')
-#        return
-
     def Tab_Temp(self):
         self.tb_fileNme = path + '/precomputed/tb_working.dat'
         if not os.path.isfile(self.tb_fileNme):
@@ -284,12 +260,12 @@ class Universe(object):
         self.y_vector = [y_st]
         
         # TESTING
-#        aL = np.logspace(-9, 0, 300)
-#        xeV = 10.**self.Xe(np.log10(aL))
-#        csT = self.Cs_Sqr(aL)
-#        tbT = 10.**self.Tb(np.log10(aL))
-#        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
-#        exit()
+        aL = np.logspace(-9, 0, 300)
+        xeV = 10.**self.Xe(np.log10(aL))
+        csT = self.Cs_Sqr(aL)
+        tbT = 10.**self.Tb(np.log10(aL))
+        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
+        exit()
 
         try_count = 0.
         try_max = 20.
