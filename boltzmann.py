@@ -30,7 +30,6 @@ class Universe(object):
         self.H_0 = 2.2348e-4 # units Mpc^-1
         self.eta_0 = 1.4387e4
 
-        
         self.Lmax = lmax
         self.stepsize = stepsize
         
@@ -142,9 +141,11 @@ class Universe(object):
     def Cs_Sqr(self, a):
         kb = 8.617e-5/1e9 # GeV/K
         facxe = 10.**self.Xe(np.log10(a))
-        mol_wei = np.zeros_like(facxe)
-        mol_wei[facxe >= 1] = 0.6
-        mol_wei[facxe < 1] = 1.22
+        Yp = 0.245
+        if facxe >= 1.:
+            mol_wei = 0.5*(1.-Yp) + Yp*1.33
+        else:
+            mol_wei = 1.*(1.-Yp) + Yp*4.
         Tb = 10.**self.Tb(np.log10(a))
         if a < 1:
             lgZ = np.log10(1./a - 1.)
@@ -197,18 +198,20 @@ class Universe(object):
         self.fileN_visibil = path + '/precomputed/working_VisibilityFunc.dat'
         Mpc_to_cm = 3.086e24
         if not os.path.isfile(self.fileN_visibil) or not os.path.isfile(self.fileN_optdep):
-            avals = np.logspace(-7, 0, 1000)
+            avals = np.logspace(-7, 0, 10000)
             Yp = 0.245
             n_b = 2.503e-7 / avals**3.
             thompson_xsec = 6.65e-25 # cm^2
             xevals = 10.**self.Xe(np.log10(avals))
             hubbs = self.hubble(avals)
             dtau = -xevals * (1. - Yp) * n_b * thompson_xsec * avals * Mpc_to_cm
-            dtau_I = interp1d(10.**self.scale_to_ct(np.log10(avals)), dtau, kind='linear', bounds_error=False, fill_value='extrapolate')
             tau = np.zeros_like(dtau)
-            for i in range(len(dtau)):
-                tau[i] = -np.trapz(dtau[i:], 10.**self.scale_to_ct(np.log10(avals[i:])))
-            
+            etavals = np.zeros_like(avals)
+            for i in range(len(avals)):
+                etavals[i] = self.conform_T(avals[i])
+            for i in range(len(dtau) - 1):
+                tau[i+1] = np.trapz(-dtau[i:], etavals[i:])
+
             np.savetxt(self.fileN_optdep, np.column_stack((avals, np.exp(-tau))))
             np.savetxt(self.fileN_visibil, np.column_stack((avals, -dtau * np.exp(-tau))))
     
@@ -256,13 +259,15 @@ class Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
-        # TESTING
-        aL = np.logspace(-9, 0, 300)
-        xeV = 10.**self.Xe(np.log10(aL))
-        csT = self.Cs_Sqr(aL)
-        tbT = 10.**self.Tb(np.log10(aL))
-        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
-        exit()
+#        #TESTING
+#        aL = np.logspace(-9, 0, 300)
+#        xeV = 10.**self.Xe(np.log10(aL))
+#        csT = np.zeros_like(aL)
+#        for i in range(len(csT)):
+#            csT[i] = self.Cs_Sqr(aL[i])
+#        tbT = 10.**self.Tb(np.log10(aL))
+#        np.savetxt('TEST____.dat', np.column_stack((aL, xeV, csT, tbT, self.hubble(aL))))
+#        exit()
 
         try_count = 0.
         try_max = 20.
@@ -292,7 +297,7 @@ class Universe(object):
                 self.stepsize *= 0.5
                 self.eta_vector.pop()
                 self.y_vector.pop()
-                #print 'Failed test of expansion/Courant time...'
+                
                 try_count += 1
                 continue
             self.step_solver()
@@ -497,7 +502,6 @@ class Universe(object):
     
     def conform_T(self, a):
         return quad(lambda x: 1./self.H_0 /np.sqrt(self.omega_R+self.omega_M*x+self.omega_L*x**4.), 0., a)[0]
-        #return 10.**self.scale_to_ct(np.log10(a))
 
     def hubble(self, a):
         return self.H_0*np.sqrt(self.omega_R*a**-4.+self.omega_M*a**-3.+self.omega_L)
