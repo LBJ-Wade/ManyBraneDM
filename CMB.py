@@ -224,7 +224,7 @@ class CMB(object):
 #                           spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 100., 400., limit=50)[0]
 
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=150)[0]
             thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
