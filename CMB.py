@@ -114,7 +114,7 @@ class CMB(object):
             self.ct_to_scale = lambda x: SingleUni.ct_to_scale(x)
             self.scale_to_ct = lambda x: SingleUni.scale_to_ct(x)
             SingleUni.tau_functions()
-            self.eta0 = SingleUni.eta0
+            self.eta0 = SingleUni.eta_0
         else:
             ManyUni = ManyBrane_Universe(self.Nbrane, 1., [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
                                           [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
@@ -122,7 +122,7 @@ class CMB(object):
             self.ct_to_scale = lambda x: ManyUni.ct_to_scale(x)
             self.scale_to_ct = lambda x: ManyUni.scale_to_ct(x)
             ManyUni.tau_functions()
-            self.eta0 = ManyUni.eta0
+            self.eta0 = ManyUni.eta_0
     
         opt_depthL = np.loadtxt(path + '/precomputed/working_expOpticalDepth.dat')
         self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
