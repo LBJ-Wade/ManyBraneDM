@@ -73,7 +73,7 @@ class Universe(object):
         for i in range(len(a0_init)):
             eta_list[i] = self.conform_T(a0_init[i])
         
-        self.eta0 = eta_list[-1]
+        self.eta_0 = eta_list[-1]
         self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
@@ -641,7 +641,7 @@ class ManyBrane_Universe(object):
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
             eta_list[i] = self.conform_T(a0_init[i])
-        self.eta0 = eta_list[-1]
+        self.eta_0 = eta_list[-1]
         self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
