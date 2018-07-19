@@ -210,7 +210,7 @@ class Universe(object):
                 etavals[i] = self.conform_T(avals[i])
             for i in range(len(dtau) - 1):
                 tau[i+1] = np.trapz(-dtau[i:], etavals[i:])
-
+            tau[0] = tau[1]
             np.savetxt(self.fileN_optdep, np.column_stack((avals, np.exp(-tau))))
             np.savetxt(self.fileN_visibil, np.column_stack((avals, -dtau * np.exp(-tau))))
     
@@ -827,7 +827,7 @@ class ManyBrane_Universe(object):
             tau = np.zeros_like(dtau)
             for i in range(len(dtau)):
                 tau[i] = -np.trapz(dtau[i:], 10.**self.scale_to_ct(np.log10(avals[i:])))
-            
+            tau[0] = tau[1]
             np.savetxt(self.fileN_optdep, np.column_stack((avals, np.exp(-tau))))
             np.savetxt(self.fileN_visibil, np.column_stack((avals, -dtau * np.exp(-tau))))
     

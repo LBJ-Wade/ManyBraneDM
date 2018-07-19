@@ -271,7 +271,7 @@ class CMB(object):
         GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
         for i,ell in enumerate(ell_tab):
             cL_interp = interp1d(self.kgrid, (thetaTab[1:, i]/self.init_pert), kind='cubic', fill_value=0.)
-            CLint = quad(lambda x: (x/self.H_0)**(0.968-1.)*100.*np.pi/(9.)*cL_interp(x)**2./x, self.kgrid[0], self.kgrid[-1], limit=200)
+            CLint = quad(lambda x: (x/self.H_0)**(0.96605-1.)*100.*np.pi/(9.)*cL_interp(x)**2./x, self.kgrid[0], self.kgrid[-1], limit=200)
             CL_table[i] = [ell, ell*(ell+1)/(2.*np.pi)*CLint[0]*GF]
             if math.isnan(CLint[0]):
                 print i, ell
@@ -305,7 +305,7 @@ class CMB(object):
         return self.Vfunc(ln10aval)
     
     def vis_max_eta(self):
-        etaL = np.logspace(-1, np.log10(self.eta0), 10000)
+        etaL = np.logspace(0, np.log10(self.eta0), 10000)
         visEval = self.visibility(etaL)
         return etaL[np.argmax(visEval)]
 
