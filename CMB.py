@@ -48,7 +48,7 @@ class CMB(object):
         
         self.multiverse = multiverse
         
-        self.eta0 = 1.4387e4
+        #self.eta0 = 1.4387e4
         self.init_pert = -1/6.
         
         ell_val = range(self.lmin, self.lmax, 10)
@@ -108,17 +108,13 @@ class CMB(object):
             os.remove(path + '/precomputed/working_VisibilityFunc.dat')
     
     def loadfiles(self):
-
-#        time_table = np.loadtxt(path+'/precomputed/Times_Tables.dat')
-#        self.ct_to_scale = interp1d(np.log10(time_table[:,2]), np.log10(time_table[:,1]), kind='cubic',
-#                                    bounds_error=False, fill_value='extrapolate')
-#        self.scale_to_ct = interp1d(np.log10(time_table[:,1]), np.log10(time_table[:,2]), kind='cubic',
-#                                    bounds_error=False, fill_value='extrapolate')
+    
         if not self.multiverse:
             SingleUni = Universe(1., self.OM_b, self.OM_c, self.OM_g, self.OM_L, self.OM_nu)
             self.ct_to_scale = lambda x: SingleUni.ct_to_scale(x)
             self.scale_to_ct = lambda x: SingleUni.scale_to_ct(x)
             SingleUni.tau_functions()
+            self.eta0 = SingleUni.eta0
         else:
             ManyUni = ManyBrane_Universe(self.Nbrane, 1., [self.OM_b, self.OM_b2], [self.OM_c, self.OM_c2],
                                           [self.OM_g, self.OM_g2], [self.OM_L, self.OM_L2],
@@ -126,13 +122,12 @@ class CMB(object):
             self.ct_to_scale = lambda x: ManyUni.ct_to_scale(x)
             self.scale_to_ct = lambda x: ManyUni.scale_to_ct(x)
             ManyUni.tau_functions()
-        
+            self.eta0 = ManyUni.eta0
+    
         opt_depthL = np.loadtxt(path + '/precomputed/working_expOpticalDepth.dat')
-#        opt_depthL = np.loadtxt(path + '/precomputed/expOpticalDepth.dat')
         self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
                                   bounds_error=False, fill_value='extrapolate')
 
-#        visfunc = np.loadtxt(path + '/precomputed/VisibilityFunc.dat')
         visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc.dat')
         self.Vfunc = interp1d(np.log10(visfunc[:,0]), visfunc[:,1], kind='cubic', bounds_error=False, fill_value=-100.)
         self.eta_start = 10.**self.scale_to_ct(np.log10(np.min(visfunc[:,0])))
@@ -270,7 +265,6 @@ class CMB(object):
         return
 
     def computeCMB(self):
-        
         thetaTab = np.loadtxt(self.ThetaFile)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
@@ -311,7 +305,7 @@ class CMB(object):
         return self.Vfunc(ln10aval)
     
     def vis_max_eta(self):
-        etaL = np.logspace(-1, np.log10(self.eta0), 2000)
+        etaL = np.logspace(-1, np.log10(self.eta0), 10000)
         visEval = self.visibility(etaL)
         return etaL[np.argmax(visEval)]
 

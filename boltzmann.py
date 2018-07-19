@@ -21,14 +21,12 @@ class Universe(object):
                  stepsize=0.01, lmax=5, testing=False):
         self.omega_b = omega_b
         self.omega_cdm = omega_cdm
-        #self.omega_L = omega_L
         self.omega_g = omega_g
         self.omega_nu = omega_nu
         self.omega_M = omega_cdm + omega_b
         self.omega_R = omega_g + omega_nu
         self.omega_L = 1. - self.omega_M - self.omega_R
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4387e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -75,6 +73,7 @@ class Universe(object):
         for i in range(len(a0_init)):
             eta_list[i] = self.conform_T(a0_init[i])
         
+        self.eta0 = eta_list[-1]
         self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
@@ -570,17 +569,15 @@ class ManyBrane_Universe(object):
         self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         self.ECDM = self.omega_cdm_T
         
-        #self.yp_prime = 0.2262 + 0.0135*np.log(self.omega_b[1]/self.omega_b[0]*6.25)
         ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
         nbarys = 2.503e-7 * (omega_b[1]/omega_b[0])
         etaPr = 6.1e-10 * (omega_b[1]/omega_b[0])*(omega_g[0]/omega_g[1])
         self.yp_prime = Yp_Prime(etaPr)
-        #print self.omega_M_T+ self.omega_cdm_T + self.omega_R_T + self.omega_L_T
         
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        self.eta_0 = 1.4387e4
+        #self.eta_0 = 1.4387e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
@@ -644,17 +641,13 @@ class ManyBrane_Universe(object):
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
             eta_list[i] = self.conform_T(a0_init[i])
-        
+        self.eta0 = eta_list[-1]
         self.ct_to_scale = interp1d(np.log10(eta_list), np.log10(a0_init), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
 
         self.Thermal_sln()
-#        self.xe_Tab()
-#        self.Tab_Temp()
-#        self.xeDark_Tab()
-#        self.Tab_dark_Temp()
         return
 
     def clearfiles(self):
@@ -717,7 +710,6 @@ class ManyBrane_Universe(object):
         if z <= 10.**3.5:
             return 10.**self.Tb_D(np.log10(a))
         else:
-            #print (z - (1./self.Tb_drk[0,0] - 1.)), self.Tb_drk[0,1]
             return (z - (1./self.Tb_drk[0,0] - 1.))*self.Tb_drk[0,1] + self.Tb_drk[0,1]
 
     def thermal_funcs(self, val, z):
