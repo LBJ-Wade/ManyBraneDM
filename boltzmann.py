@@ -99,9 +99,9 @@ class Universe(object):
         if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme):
             tvals = np.linspace(3.5, -1, 500)
             y0 = [1., 2.7255 * (1. + 10.**tvals[0])]
-         
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
+            val_sln[:,0][10.**tvals <= 7.68] = 1.
             self.Tb_drk = np.column_stack((avals, val_sln[:, 1]))
             np.savetxt(self.tb_fileNme, self.Tb_drk)
             self.Xe_dark = np.column_stack((avals, val_sln[:,0]))
@@ -119,7 +119,7 @@ class Universe(object):
     def thermal_funcs(self, val, z):
         xe, T = val
         return [self.xeDiff([xe], z, T)[0], self.dotT([T], z, xe)]
-
+    
     def dotT(self, T, lgz, xe):
         kb = 8.617e-5/1e9 # Gev/K
         thompson_xsec = 6.65e-25 # cm^2
@@ -191,6 +191,7 @@ class Universe(object):
         
         Value = Cr*np.log(10.)*yy*(-aval)/(hub)*((1.-val[0])*beta - val[0]**2.*n_b*alpha2)*Mpc_to_cm
         return [Value]
+    
     
     def tau_functions(self):
         self.fileN_optdep = path + '/precomputed/working_expOpticalDepth.dat'
@@ -680,6 +681,7 @@ class ManyBrane_Universe(object):
          
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
+            val_sln[:,0][10.**tvals <= 7.68] = 1.
             self.Tb_1 = np.column_stack((avals, val_sln[:, 1]))
             np.savetxt(self.tb_fileNme, self.Tb_1)
             self.Xe_1 = np.column_stack((avals, val_sln[:,0]))
