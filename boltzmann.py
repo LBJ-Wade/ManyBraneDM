@@ -55,6 +55,9 @@ class Universe(object):
             self.combined_vector[7+i*3] = self.Neu_Dot[i] = []
         
         self.compute_funcs()
+#        print 'Matter-Radiation Eq: ', (self.omega_M/self.omega_R - 1.)
+#        print self.omega_M, self.omega_R
+#        exit()
 
         self.testing = testing
         if self.testing:
@@ -97,8 +100,10 @@ class Universe(object):
         self.tb_fileNme = path + '/precomputed/tb_working.dat'
         self.Xe_fileNme = path + '/precomputed/xe_working.dat'
         if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme):
-            tvals = np.linspace(3.5, -1, 500)
-            y0 = [1., 2.7255 * (1. + 10.**tvals[0])]
+#            tvals = np.linspace(5., -1, 500)
+            tvals = np.linspace(3.4, -1, 500)
+            y0 = [1.079, 2.7255 * (1. + 10.**tvals[0])]
+#            y0 = [1., 2.7255 * (1. + 10.**tvals[0]), 0., 1.]
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
             val_sln[:,0][10.**tvals <= 7.68] = 1.
@@ -112,11 +117,12 @@ class Universe(object):
             self.Xe_dark = np.loadtxt(self.Xe_fileNme)
         
         self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
-        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=np.log10(1.079))
         return
 
 
     def thermal_funcs(self, val, z):
+#        xe, T, xhe_1, xhe_2 = val
         xe, T = val
         return [self.xeDiff([xe], z, T)[0], self.dotT([T], z, xe)]
     
@@ -141,32 +147,26 @@ class Universe(object):
         kb = 8.617e-5/1e9 # GeV/K
         facxe = 10.**self.Xe(np.log10(a))
         Yp = 0.245
-        if facxe >= 1.:
-            mol_wei = 0.5*(1.-Yp) + Yp*1.33
-        else:
-            mol_wei = 1.*(1.-Yp) + Yp*4.
+
+        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*facxe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-facxe)
         Tb = 10.**self.Tb(np.log10(a))
         if a < 1:
             lgZ = np.log10(1./a - 1.)
         else:
             lgZ = -10
         extraPT = self.dotT([Tb], lgZ, facxe) *(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
-        val_r = kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
+        val_r = 2.*kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
         if val_r < 0.:
-            return 0.
+            return np.abs(val_r)
+        if val_r > 1:
+            return 1.
         return val_r
-    
-    def xeDiff(self, val, y, tgas, hydrogen=True, first=True):
-        yy = 10.**y
-        
-        if hydrogen:
-            ep0 = 13.6/1e9  # GeV
-        else:
-            if first:
-                ep0 = 54.4/1e9
-            else:
-                ep0 = 24.6/1e9
 
+    def xeDiff(self, val, y, tgas, hydrogen=True, first=True):
+        if y > 3.5:
+            return [0.]
+        yy = 10.**y
+        ep0 = 13.6/1e9  # GeV
         kb = 8.617e-5/1e9 # Gev/K
         GeV_cm = 5.06e13
         Mpc_to_cm = 3.086e24
@@ -222,20 +222,21 @@ class Universe(object):
         OR = self.omega_R * self.H_0**2./self.hubble(aval)**2./aval**4.
         ONu = self.omega_nu * self.H_0**2./self.hubble(aval)**2./aval**4.
         rfactor = ONu / (0.75*OM*aval + OR)
+        HUB = self.hubble(aval)
 
         self.inital_perturb = -1./6.
         for i in range(1):
             self.Psi_vec.append(self.inital_perturb)
             self.Phi_vec.append(-(1.+2.*rfactor/5.)*self.Psi_vec[-1])
             self.dot_rhoCDM_vec.append(-3./2.*self.Psi_vec[-1])
-            self.dot_velCDM_vec.append(1./2*eta_0*self.k*self.Psi_vec[-1])
+            self.dot_velCDM_vec.append(1./2.*eta_0*self.k*self.Psi_vec[-1])
             self.dot_rhoB_vec.append(-3./2.*self.Psi_vec[-1])
             self.dot_velB_vec.append(1./2*eta_0*self.k*self.Psi_vec[-1])
             
             self.Theta_Dot[0].append(-1./2.*self.Psi_vec[-1])
-            self.Theta_Dot[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
+            self.Theta_Dot[1].append(1./6.*eta_0*self.k*self.Psi_vec[-1])
             self.Neu_Dot[0].append(-1./2.*self.Psi_vec[-1])
-            self.Neu_Dot[1].append(1./6*eta_0*self.k*self.Psi_vec[-1])
+            self.Neu_Dot[1].append(1./6.*eta_0*self.k*self.Psi_vec[-1])
             self.Neu_Dot[2].append(1./30.*(self.k*eta_0)**2.*self.Psi_vec[-1])
             
             for i in range(self.Lmax + 1):
@@ -251,7 +252,6 @@ class Universe(object):
     
     def solve_system(self):
         eta_st = np.min([1e-3/self.k, 1e-1/0.7]) # Initial conformal time in Mpc
-        
         y_st = np.log(self.scale_a(eta_st))
         eta_st = self.conform_T(np.exp(y_st))
         
@@ -259,7 +259,7 @@ class Universe(object):
         self.eta_vector = [eta_st]
         self.y_vector = [y_st]
         
-#        #TESTING
+##        #TESTING
 #        aL = np.logspace(-9, 0, 300)
 #        xeV = 10.**self.Xe(np.log10(aL))
 #        csT = np.zeros_like(aL)
@@ -331,7 +331,7 @@ class Universe(object):
             tau_n = (self.y_vector[-1] - self.y_vector[-2]) / (self.y_vector[-2] - self.y_vector[-3])
         else:
             tau_n = (self.y_vector[-1] - self.y_vector[-2]) / self.y_vector[-2]
-
+        
         delt = (self.y_vector[-1] - self.y_vector[-2])
         Ident = np.eye(self.TotalVars)
         Jmat = self.matrix_J(self.y_vector[-1])
@@ -369,12 +369,12 @@ class Universe(object):
             self.dtauLIST.append(dTa)
             self.xeLIST.append(10.**self.Xe(np.log10(a_val)))
         
-        tflip_TCA = 1e-4
+        tflip_TCA = 1e-12
         
         PsiTerm = np.zeros(self.TotalVars)
-        PsiTerm[0] = -1.
-        PsiTerm[11] = -12.*(a_val/self.k)**2.*self.rhoG(a_val)
-        PsiTerm[13] = -12.*(a_val/self.k)**2.*self.rhoNeu(a_val)
+        PsiTerm[0] += -1.
+        PsiTerm[11] += -12.*(a_val/self.k)**2.*self.rhoG(a_val)
+        PsiTerm[13] += -12.*(a_val/self.k)**2.*self.rhoNeu(a_val)
         
         # Phi Time derivative
         Jma[0,:] += PsiTerm
@@ -407,6 +407,8 @@ class Universe(object):
             Jma[4,3] += self.k * CsndB / (HUB * a_val)
             Jma[4,8] += -3.*dTa / (Rfac * HUB * a_val)
         else:
+            print 'Use TCA?'
+            exit()
             Jma[4,4] += -1./(1.+RR) + 2.*(RR/(1.+RR))**2. + 2.*RR*HUB*a_val/\
                         ((1.+RR)**2.*dTa)
             Jma[4,3] += CsndB*self.k/(HUB*a_val*(1.+RR))
@@ -457,14 +459,14 @@ class Universe(object):
         Jma[11,8] += 2.*self.k / (5.*HUB*a_val)
         Jma[11,14] += -3.*self.k / (5.*HUB*a_val)
         Jma[11,11] += 9.*dTa / (10.*HUB*a_val)
-        Jma[11,6] += - dTa / (10.*HUB*a_val)
-        Jma[11,12] += - dTa /(10.*HUB*a_val)
+        Jma[11,6] += -dTa / (10.*HUB*a_val)
+        Jma[11,12] += -dTa /(10.*HUB*a_val)
         # ThetaP 2
         Jma[12,9] += 2.*self.k / (5.*HUB*a_val)
         Jma[12,15] += -3.*self.k / (5.*HUB*a_val)
         Jma[12,12] += 9.*dTa / (10.*HUB*a_val)
         Jma[12,11] += -dTa / (10.*HUB*a_val)
-        Jma[12,6] += - dTa / (10.*HUB*a_val)
+        Jma[12,6] += -dTa / (10.*HUB*a_val)
         # Neu 2
         Jma[13,10] += 2.*self.k/ (5.*HUB*a_val)
         Jma[13,16] += -3.*self.k/ (5.*HUB*a_val)
@@ -486,16 +488,13 @@ class Universe(object):
         # Theta Lmax
         Jma[-3, -3-3] += self.k / (HUB*a_val)
         Jma[-3, -3] += (-(self.Lmax+1.)/eta + dTa) / (HUB*a_val)
-        # Theta Lmax
+        # ThetaP Lmax
         Jma[-2, -2-3] += self.k / (HUB*a_val)
         Jma[-2, -2] += (-(self.Lmax+1.)/eta + dTa) / (HUB*a_val)
-        # Theta Lmax
+        # Nu Lmax
         Jma[-1, -1-3] += self.k / (HUB*a_val)
         Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
         return Jma
-
-#    def Csnd(self, a):
-#        return self.Csnd_interp(np.log10(a))/a
 
     def scale_a(self, eta):
         return 10.**self.ct_to_scale(np.log10(eta))
@@ -507,7 +506,7 @@ class Universe(object):
         return self.H_0*np.sqrt(self.omega_R*a**-4.+self.omega_M*a**-3.+self.omega_L)
 
     def rhoCDM(self, a):
-        return self.omega_cdm * self.H_0**2. * a**-3. 
+        return self.omega_cdm * self.H_0**2. * a**-3.
 
     def rhoB(self, a):
         return self.omega_b * self.H_0**2. * a**-3.

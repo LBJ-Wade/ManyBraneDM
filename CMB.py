@@ -190,20 +190,12 @@ class CMB(object):
             fileNme += '.dat'
         fields = np.loadtxt(fileNme)
 
-        # NOT MODIFIED
         theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
-#        theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
+        theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
         psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
-#        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
-#        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 12] + fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
-#        pre_2nd_derTerm = (fields[:, 7] + fields[:, 12] + fields[:, 13])*self.visibility(fields[:,0])
-#        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
-
-        # ADDED COEFF TO MATCH CLASS...
-        theta1_I = interp1d(np.log10(fields[:,0]), 0.075/5.*fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
-        vb_I = interp1d(np.log10(fields[:,0]), -3./8.*fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
-        PiPolar = interp1d(np.log10(fields[:,0]), -13.*fields[:, 7] + -6.*fields[:, 12] + -13.*fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
-        pre_2nd_derTerm = (-13.*fields[:, 7] + -6.*fields[:, 12] + -13.*fields[:, 13])*self.visibility(fields[:,0])
+        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 12] + fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
+        pre_2nd_derTerm = (fields[:, 7] + fields[:, 12] + fields[:, 13])*self.visibility(fields[:,0])
         sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
 
         etaVisMax = self.vis_max_eta()
@@ -226,20 +218,17 @@ class CMB(object):
             # Full. Dodelson 8.54
             term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
                            PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
-                           spherical_jn(int(ell), k*(self.eta0 - x)), 1., 1000., limit=100)[0]
-#            term2 = -quad(lambda x:  self.visibility(x)*(vb_I(np.log10(x))/k) *
-#                           spherical_jn(int(ell), k*(self.eta0 - x), derivative=True)*(-k), 1., 1000., limit=100)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=100)[0]
             term2 = quad(lambda x:  self.visibility(x)*vb_I(np.log10(x)) * (
                            spherical_jn(int(ell - 1.), k*(self.eta0 - x)) -
                            (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax))),
-                           1., 1000., limit=100)[0]
+                           100., 400, limit=100)[0]
 
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=100)[0]
             thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
-#        np.savetxt(path + '/OutputFiles/TESTING_TERMS_ThetaFile_kval_{:.4e}.dat'.format(k), testINTS)
         return
     
     def SaveThetaFile(self, test=False):

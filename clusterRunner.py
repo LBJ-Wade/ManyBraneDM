@@ -10,9 +10,9 @@ extraCDM = 0.000
 
 if not Multiverse:
     Ftag = 'StandardUniverse'
-    OM_b = 0.0484
-    OM_c = 0.258
-    OM_g = 5.38e-5
+    OM_b = 0.0492
+    OM_c = 0.266
+    OM_g = 5.43e-5
     OM_L = 0.7 # Doesnt matter, it calculates with flat Uni
 
     OM_b2 = 0.
