@@ -106,7 +106,11 @@ class Universe(object):
 #            y0 = [1., 2.7255 * (1. + 10.**tvals[0]), 0., 1.]
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
-            val_sln[:,0][10.**tvals <= 7.68] = 1.
+            zreion = 9.
+            tanhV = .5*(1.+0.079)*(1.+np.tanh(((1.+zreion)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreion)*0.5))
+            zreionHE = 3.5
+            tanhV += .5*(0.079)*(1.+np.tanh(((1.+zreionHE)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreionHE)*0.5))
+            val_sln[:,0] = np.max(val_sln[:,0], tanhV)
             self.Tb_drk = np.column_stack((avals, val_sln[:, 1]))
             np.savetxt(self.tb_fileNme, self.Tb_drk)
             self.Xe_dark = np.column_stack((avals, val_sln[:,0]))
