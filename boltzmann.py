@@ -106,7 +106,7 @@ class Universe(object):
 #            y0 = [1., 2.7255 * (1. + 10.**tvals[0]), 0., 1.]
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
-            zreion = 9.
+            zreion = 12.
             tanhV = .5*(1. + 0.08112)*(1.+np.tanh(((1.+zreion)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreion)*0.5))
             zreionHE = 3.5
             tanhV += .5*0.08112*(1.+np.tanh(((1.+zreionHE)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreionHE)*0.5))
@@ -121,7 +121,7 @@ class Universe(object):
             self.Xe_dark = np.loadtxt(self.Xe_fileNme)
         
         self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
-        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=np.log10(1.079))
+        self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=np.log10(1.1622))
         return
 
 
