@@ -70,7 +70,7 @@ class Universe(object):
         
         return
 
-    def compute_funcs(self):
+    def compute_funcs(self, preload=True):
         a0_init = np.logspace(-14, 0, 1e4)
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
@@ -81,9 +81,21 @@ class Universe(object):
                                     bounds_error=False, fill_value='extrapolate')
         self.scale_to_ct = interp1d(np.log10(a0_init), np.log10(eta_list), kind='linear',
                                     bounds_error=False, fill_value='extrapolate')
-            
+        
         self.Thermal_sln()
-
+        if preload:
+            generic_full_files = np.loadtxt('precomputed/explanatory02_thermodynamics.dat')
+            avals = 1./(1. + generic_full_files[:,0])
+            visfunc = generic_full_files[:,5]
+            exptau = generic_full_files[:,4]
+            csoundb = generic_full_files[:,7]
+            temb = generic_full_files[:,6]
+            xe = generic_full_files[:,1]
+            
+            np.savetxt(path + '/precomputed/tb_working.dat', np.column_stack((avals, temb)))
+            np.savetxt(path + '/precomputed/xe_working.dat', np.column_stack((avals, xe)))
+            np.savetxt(path + '/precomputed/working_VisibilityFunc.dat', np.column_stack((avals, visfunc)))
+            np.savetxt(path + '/precomputed/working_expOpticalDepth.dat', np.column_stack((avals, exptau)))
 
     def clearfiles(self):
         if os.path.isfile(path + '/precomputed/xe_working.dat'):
