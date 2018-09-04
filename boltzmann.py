@@ -83,15 +83,17 @@ class Universe(object):
                                     bounds_error=False, fill_value='extrapolate')
         
         self.Thermal_sln()
+        # DONT FORGET ABOUT THIS
         if preload:
             generic_full_files = np.loadtxt('precomputed/explanatory02_thermodynamics.dat')
             avals = 1./(1. + generic_full_files[:,0])
             visfunc = generic_full_files[:,5]
             exptau = generic_full_files[:,4]
-            csoundb = generic_full_files[:,7]
             temb = generic_full_files[:,6]
-            xe = generic_full_files[:,1]
             
+            csoundb = generic_full_files[:,7]
+            xe = generic_full_files[:,2]
+            self.Cs_Sqr = interp1d(avals, csoundb, kind='linear', bounds_error=False, fill_value='extrapolate')
             np.savetxt(path + '/precomputed/tb_working.dat', np.column_stack((avals, temb)))
             np.savetxt(path + '/precomputed/xe_working.dat', np.column_stack((avals, xe)))
             np.savetxt(path + '/precomputed/working_VisibilityFunc.dat', np.column_stack((avals, visfunc)))
@@ -129,6 +131,7 @@ class Universe(object):
             np.savetxt(self.Xe_fileNme, self.Xe_dark)
     
         else:
+ 
             self.Tb_drk = np.loadtxt(self.tb_fileNme)
             self.Xe_dark = np.loadtxt(self.Xe_fileNme)
         
@@ -148,10 +151,8 @@ class Universe(object):
         aval = 1. / (1. + 10.**lgz)
         Yp = 0.245
         Mpc_to_cm = 3.086e24
-        if xe >= 1.:
-            mol_wei = 0.6
-        else:
-            mol_wei = 1.22
+
+        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*xe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-xe)
 
         n_b = 2.503e-7*(1.+10.**lgz)**3.
         hub = self.hubble(aval)
@@ -159,24 +160,24 @@ class Universe(object):
         jacF = - 1. * (10.**lgz * np.log(10.))
         return (-2.*T[0]*aval + (1./hub)*(8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xe*n_b*thompson_xsec)*(2.7255*(1.+10.**lgz) - T[0])*Mpc_to_cm)*jacF
     
-    def Cs_Sqr(self, a):
-        kb = 8.617e-5/1e9 # GeV/K
-        facxe = 10.**self.Xe(np.log10(a))
-        Yp = 0.245
-
-        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*facxe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-facxe)
-        Tb = 10.**self.Tb(np.log10(a))
-        if a < 1:
-            lgZ = np.log10(1./a - 1.)
-        else:
-            lgZ = -10
-        extraPT = self.dotT([Tb], lgZ, facxe) *(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
-        val_r = 2.*kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
-        if val_r < 0.:
-            return np.abs(val_r)
-        if val_r > 1:
-            return 1.
-        return val_r
+#    def Cs_Sqr(self, a):
+#        kb = 8.617e-5/1e9 # GeV/K
+#        facxe = 10.**self.Xe(np.log10(a))
+#        Yp = 0.245
+#
+#        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*facxe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-facxe)
+#        Tb = 10.**self.Tb(np.log10(a))
+#        if a < 1:
+#            lgZ = np.log10(1./a - 1.)
+#        else:
+#            lgZ = -10
+#        extraPT = self.dotT([Tb], lgZ, facxe) *(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
+#        val_r = 2.*kb*Tb/mol_wei*(1. - 1./3. * extraPT/Tb)
+#        if val_r < 0.:
+#            return np.abs(val_r)
+#        if val_r > 1:
+#            return 1.
+#        return val_r
 
     def xeDiff(self, val, y, tgas, hydrogen=True, first=True):
         if y > 3.5:
