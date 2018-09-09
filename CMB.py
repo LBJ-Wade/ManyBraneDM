@@ -210,20 +210,21 @@ class CMB(object):
 
         for i,ell in enumerate(ell_tab):
             # Approximate. Dodelson 8.56
-#            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
+            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)) + PiPolar(np.log10(etaVisMax))/4.)* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))*self.visibility(etaVisMax)
 #            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
-
+            term2 = self.visibility(etaVisMax)*vb_I(np.log10(etaVisMax)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - etaVisMax)) -
+                    (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
             # Full. Dodelson 8.54
-            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
-                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
-                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=100)[0]
-            term2 = quad(lambda x:  self.visibility(x)*vb_I(np.log10(x)) * (
-                           spherical_jn(int(ell - 1.), k*(self.eta0 - x)) -
-                           (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax))),
-                           100., 400, limit=100)[0]
+#            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
+#                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *
+#                           spherical_jn(int(ell), k*(self.eta0 - x)), 100., 400., limit=100)[0]
+#            term2 = quad(lambda x:  self.visibility(x)*vb_I(np.log10(x)) * (
+#                           spherical_jn(int(ell - 1.), k*(self.eta0 - x)) -
+#                           (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
+#                           100., 400, limit=100)[0]
 
             term3 = quad(lambda x:  self.exp_opt_depth(x)*(psi_dot(np.log10(x)) - phi_dot(np.log10(x)))*
-                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=100)[0]
+                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50)[0]
             thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
