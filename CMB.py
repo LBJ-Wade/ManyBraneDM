@@ -211,7 +211,7 @@ class CMB(object):
         for i,ell in enumerate(ell_tab):
             # Approximate. Dodelson 8.56
 #            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)) + PiPolar(np.log10(etaVisMax))/4.)* spherical_jn(int(ell), k*(self.eta0 - etaVisMax))*self.visibility(etaVisMax)
-            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax)))
+            term1 = (theta0_I(np.log10(etaVisMax)) + psi_I(np.log10(etaVisMax))) * spherical_jn(int(ell), k*(self.eta0 - etaVisMax))
             term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
 #            term2 = 3.*theta1_I(np.log10(etaVisMax))*(spherical_jn(int(ell-1), k*(self.eta0 - etaVisMax)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - etaVisMax))/(k*(self.eta0 - etaVisMax)))
 #            term2 = self.visibility(etaVisMax)*vb_I(np.log10(etaVisMax)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - etaVisMax)) -
