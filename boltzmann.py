@@ -237,6 +237,7 @@ class Universe(object):
     def init_conds(self, eta_0, aval):
         OM = self.omega_M * self.H_0**2./self.hubble(aval)**2./aval**3.
         OR = self.omega_R * self.H_0**2./self.hubble(aval)**2./aval**4.
+#        OR = self.omega_g * self.H_0**2./self.hubble(aval)**2./aval**4.
         ONu = self.omega_nu * self.H_0**2./self.hubble(aval)**2./aval**4.
         rfactor = ONu / (0.75*OM*aval + OR)
         HUB = self.hubble(aval)
@@ -256,13 +257,14 @@ class Universe(object):
             self.Neu_Dot[1].append(1./6.*eta_0*self.k*self.Psi_vec[-1])
             self.Neu_Dot[2].append(1./30.*(self.k*eta_0)**2.*self.Psi_vec[-1])
             
+
             for i in range(self.Lmax + 1):
                 if i > 1:
                     self.Theta_Dot[i].append(0.)
                 self.Theta_P_Dot[i].append(0.)
                 if i > 2:
                     self.Neu_Dot[i].append(0.)
-
+    
         self.step = 0
         return
     
@@ -511,6 +513,7 @@ class Universe(object):
         # Nu Lmax
         Jma[-1, -1-3] += self.k / (HUB*a_val)
         Jma[-1, -1] += -(self.Lmax+1.)/(eta*HUB*a_val)
+        
         return Jma
 
     def scale_a(self, eta):
