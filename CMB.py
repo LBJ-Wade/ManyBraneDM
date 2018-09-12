@@ -210,7 +210,7 @@ class CMB(object):
             # Approximate. Dodelson 8.56
             term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
                         PiPolar(np.log10(x))/4.)*spherical_jn(int(ell), k*(self.eta0 - x)),
-                        100. self.eta0, limit=50, epsrel=1e-4)[0]
+                        100., self.eta0, limit=50, epsrel=1e-4)[0]
             # Full. Dodelson 8.54
 #            term1 = quad(lambda x:  self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)) +
 #                           PiPolar(np.log10(x))/4. + (3./4.)/k**2.*DerTerm(np.log10(x))) *

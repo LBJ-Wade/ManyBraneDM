@@ -694,13 +694,20 @@ class ManyBrane_Universe(object):
         self.tbDk_fileNme = path + '/precomputed/tb_dark_working.dat'
         self.Xedk_fileNme = path + '/precomputed/xe_dark_working.dat'
         
-        if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme):
+        if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme) \
+            or not os.path.isfile(self.Xedk_fileNme) or not os.path.isfile(self.tbDk_fileNme):
             tvals = np.linspace(3.5, -1, 1000)
             y0 = [1., 2.7255 * (1. + 10.**tvals[0]), 1., self.darkCMB_T * (1. + 10.**tvals[0])]
          
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
-            val_sln[:,0][10.**tvals <= 7.68] = 1.
+            
+            zreion = 12.
+            tanhV = .5*(1. + 0.08112)*(1.+np.tanh(((1.+zreion)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreion)*0.5))
+            zreionHE = 3.5
+            tanhV += .5*0.08112*(1.+np.tanh(((1.+zreionHE)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreionHE)*0.5))
+            val_sln[:,0] = np.maximum(val_sln[:,0], tanhV)
+            
             self.Tb_1 = np.column_stack((avals, val_sln[:, 1]))
             np.savetxt(self.tb_fileNme, self.Tb_1)
             self.Xe_1 = np.column_stack((avals, val_sln[:,0]))
@@ -748,11 +755,12 @@ class ManyBrane_Universe(object):
         
         Mpc_to_cm = 3.086e24
         
-        if xe >= 1.:
-            mol_wei = 0.5*(1.-Yp) + Yp*1.33
-        else:
-            mol_wei = 1.*(1.-Yp) + Yp*4.
-        
+        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*xe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-xe)
+#        if xe >= 1.:
+#            mol_wei = 0.5*(1.-Yp) + Yp*1.33
+#        else:
+#            mol_wei = 1.*(1.-Yp) + Yp*4.
+
         n_b = 2.503e-7*(1.+10.**lgz)**3.
         if dark:
             n_b *= self.omega_b[1]/self.omega_b[0]
@@ -776,10 +784,12 @@ class ManyBrane_Universe(object):
             Yp = self.yp_prime
             Tb = self.Tb_DARK(a)
     
-        mol_wei = np.zeros_like(facxe)
-        mol_wei[facxe >= 1] = 0.5*(1.-Yp) + Yp*1.33
-        mol_wei[facxe < 1] = 1.*(1.-Yp) + Yp*4.
-        
+    
+        mol_wei = (0.5*(1.-Yp) + Yp*1.33)*facxe + (1.*(1.-Yp) + Yp*4.)*np.abs(1.16-facxe)
+#        mol_wei = np.zeros_like(facxe)
+#        mol_wei[facxe >= 1] = 0.5*(1.-Yp) + Yp*1.33
+#        mol_wei[facxe < 1] = 1.*(1.-Yp) + Yp*4.
+
         if a < 1:
             lgZ = np.log10(1./a - 1.)
         else:
