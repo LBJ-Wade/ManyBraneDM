@@ -33,6 +33,8 @@ class CMB(object):
         self.Nbrane = Nbrane
         if OM_b2 != 0.:
             self.PressFac = (OM_g2 / OM_b2) / (OM_g / OM_b)
+        else:
+            self.PressFac = 0.
         
         self.eCDM = OM_c + OM_c2 * Nbrane
         
@@ -40,6 +42,11 @@ class CMB(object):
         self.kmax = kmax
         self.knum = knum
         self.Ftag = Ftag
+        if multiverse:
+            self.f_tag = '_Nbranes_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}'.format(self.Nbrane, self.PressureFac, self.eCDM)
+        else:
+            self.f_tag = ''
+        
         self.lmax = lmax
         self.lvals = lvals
         self.H_0 = 2.2348e-4 # units Mpc^-1
@@ -95,15 +102,15 @@ class CMB(object):
         return
     
     def clearfiles(self):
-        if os.path.isfile(path + '/precomputed/xe_working.dat'):
-            os.remove(path + '/precomputed/xe_working.dat')
-        if os.path.isfile(path + '/precomputed/tb_working.dat'):
-            os.remove(path + '/precomputed/tb_working.dat')
+        if os.path.isfile(path + '/precomputed/xe_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/xe_working' + self.f_tag + '.dat')
+        if os.path.isfile(path + '/precomputed/tb_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/tb_working' + self.f_tag + '.dat')
 
-        if os.path.isfile(path + '/precomputed/working_expOpticalDepth.dat'):
-            os.remove(path + '/precomputed/working_expOpticalDepth.dat')
-        if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
-            os.remove(path + '/precomputed/working_VisibilityFunc.dat')
+        if os.path.isfile(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat')
+        if os.path.isfile(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat')
     
     def loadfiles(self):
     
@@ -122,11 +129,11 @@ class CMB(object):
             ManyUni.tau_functions()
             self.eta0 = ManyUni.eta_0
     
-        opt_depthL = np.loadtxt(path + '/precomputed/working_expOpticalDepth.dat')
+        opt_depthL = np.loadtxt(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat')
         self.opt_depth = interp1d(np.log10(opt_depthL[:,0]), opt_depthL[:,1], kind='cubic',
                                   bounds_error=False, fill_value='extrapolate')
 
-        visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc.dat')
+        visfunc = np.loadtxt(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat')
         self.Vfunc = interp1d(np.log10(visfunc[:,0]), visfunc[:,1], kind='cubic', bounds_error=False, fill_value=0.)
         self.eta_start = 10.**self.scale_to_ct(np.log10(np.min(visfunc[:,0])))
         

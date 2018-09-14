@@ -380,6 +380,9 @@ class Universe(object):
         dTa = -10.**self.Xe(np.log10(a_val))*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
         CsndB = self.Cs_Sqr(a_val)
         
+        print dTa, CsndB
+        exit()
+        
         if self.testing:
             self.aLIST.append(a_val)
             self.etaLIST.append(eta)
@@ -591,6 +594,7 @@ class ManyBrane_Universe(object):
             self.PressureFac = 0.
         
         self.ECDM = self.omega_cdm_T
+        self.f_tag = '_Nbranes_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}'.format(self.Nbrane, self.PressureFac, self.ECDM)
         
         ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
         nbarys = 2.503e-7 * (omega_b[1]/omega_b[0])
@@ -674,31 +678,32 @@ class ManyBrane_Universe(object):
                                     bounds_error=False, fill_value='extrapolate')
 
         self.Thermal_sln()
+        
         return
 
     def clearfiles(self):
-        if os.path.isfile(path + '/precomputed/xe_working.dat'):
-            os.remove(path + '/precomputed/xe_working.dat')
-        if os.path.isfile(path + '/precomputed/tb_working.dat'):
-            os.remove(path + '/precomputed/tb_working.dat')
+        if os.path.isfile(path + '/precomputed/xe_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/xe_working' + self.f_tag + '.dat')
+        if os.path.isfile(path + '/precomputed/tb_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/tb_working' + self.f_tag + '.dat')
         
-        if os.path.isfile(path + '/precomputed/xe_dark_working.dat'):
-            os.remove(path + '/precomputed/xe_dark_working.dat')
-        if os.path.isfile(path + '/precomputed/tb_dark_working.dat'):
-            os.remove(path + '/precomputed/tb_dark_working.dat')
+        if os.path.isfile(path + '/precomputed/xe_dark_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/xe_dark_working' + self.f_tag + '.dat')
+        if os.path.isfile(path + '/precomputed/tb_dark_working' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/tb_dark_working' + self.f_tag + '.dat')
 
-        if os.path.isfile(path + '/precomputed/working_expOpticalDepth.dat'):
-            os.remove(path + '/precomputed/working_expOpticalDepth.dat')
-        if os.path.isfile(path + '/precomputed/working_VisibilityFunc.dat'):
-            os.remove(path + '/precomputed/working_VisibilityFunc.dat')
+        if os.path.isfile(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat')
+        if os.path.isfile(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat'):
+            os.remove(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat')
         return
     
     def Thermal_sln(self):
-        self.tb_fileNme = path + '/precomputed/tb_working.dat'
-        self.Xe_fileNme = path + '/precomputed/xe_working.dat'
+        self.tb_fileNme = path + '/precomputed/tb_working' + self.f_tag + '.dat'
+        self.Xe_fileNme = path + '/precomputed/xe_working' + self.f_tag + '.dat'
         
-        self.tbDk_fileNme = path + '/precomputed/tb_dark_working.dat'
-        self.Xedk_fileNme = path + '/precomputed/xe_dark_working.dat'
+        self.tbDk_fileNme = path + '/precomputed/tb_dark_working' + self.f_tag + '.dat'
+        self.Xedk_fileNme = path + '/precomputed/xe_dark_working' + self.f_tag + '.dat'
         
         if not os.path.isfile(self.tb_fileNme) or not os.path.isfile(self.Xe_fileNme) \
             or not os.path.isfile(self.Xedk_fileNme) or not os.path.isfile(self.tbDk_fileNme):
@@ -796,7 +801,9 @@ class ManyBrane_Universe(object):
         extraPT = self.dotT([Tb], lgZ, facxe, dark=dark)*(-1./Tb)*(1.+10.**lgZ)/(np.log(10.) * 10.**lgZ)
         val_r = kb*Tb/mol_wei*(1. - 1./3. * extraPT)
         if val_r < 0.:
-            return 0.
+            return np.abs(val_r)
+        if val_r > 1:
+            return 1.
         return val_r
     
     def xeDiff(self, val, y, tgas, dark=False, hydrogen=True, first=True):
@@ -841,8 +848,8 @@ class ManyBrane_Universe(object):
     
     
     def tau_functions(self):
-        self.fileN_optdep = path + '/precomputed/working_expOpticalDepth.dat'
-        self.fileN_visibil = path + '/precomputed/working_VisibilityFunc.dat'
+        self.fileN_optdep = path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat'
+        self.fileN_visibil = path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat'
         Mpc_to_cm = 3.086e24
         if not os.path.isfile(self.fileN_visibil) or not os.path.isfile(self.fileN_optdep):
             avals = np.logspace(-7, 0, 1000)
@@ -1020,8 +1027,9 @@ class ManyBrane_Universe(object):
         
         Yp = 0.245
         n_b = 2.503e-7
-        dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
-       
+        #dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
+        dTa = -10.**self.Xe(np.log10(a_val))*(1. - Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
+
         xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
         dTa_D = -xeDk*(1.-self.yp_prime)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
