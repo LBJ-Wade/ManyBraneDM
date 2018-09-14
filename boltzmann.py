@@ -589,12 +589,16 @@ class ManyBrane_Universe(object):
             self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
         else:
             self.PressureFac = 0.
-            
+        
         self.ECDM = self.omega_cdm_T
         
         ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
         nbarys = 2.503e-7 * (omega_b[1]/omega_b[0])
-        etaPr = 6.1e-10 * (omega_b[1]/omega_b[0])*(omega_g[0]/omega_g[1])
+        if omega_b[1] != 0.:
+            etaPr = 6.1e-10 * (omega_b[1]/omega_b[0])*(omega_g[0]/omega_g[1])
+        else:
+            etaPr = 6.1e-10
+        
         self.yp_prime = Yp_Prime(etaPr)
         
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
@@ -762,7 +766,10 @@ class ManyBrane_Universe(object):
             n_b *= self.omega_b[1]/self.omega_b[0]
         hub = self.hubble(aval)
         if dark:
-            omega_Rat = self.omega_g[1] / self.omega_b[1]
+            if omega_b[1] != 0.:
+                omega_Rat = self.omega_g[1] / self.omega_b[1]
+            else:
+                omega_Rat = self.omega_g[0] / self.omega_b[0]
         else:
             omega_Rat = self.omega_g[0] / self.omega_b[0]
         jacF = - 1. * (10.**lgz * np.log(10.))
@@ -1006,7 +1013,10 @@ class ManyBrane_Universe(object):
         Rfac = (3.*self.omega_b[0]*a_val)/(4.*self.omega_g[0])
         RR = (4.*self.omega_g[0])/(3.*self.omega_b[0]*a_val)
         #Rfac_D = (3.*self.omega_b[1]*a_val)/(4.*self.omega_g[1])
-        RR_D = (4.*self.omega_g[1])/(3.*self.omega_b[1]*a_val)
+        if self.omega_b[1] != 0:
+            RR_D = (4.*self.omega_g[1])/(3.*self.omega_b[1]*a_val)
+        else:
+            RR_D = (4.*self.omega_g[0])/(3.*self.omega_b[0]*a_val)
         
         Yp = 0.245
         n_b = 2.503e-7
