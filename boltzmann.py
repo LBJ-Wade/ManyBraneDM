@@ -585,8 +585,11 @@ class ManyBrane_Universe(object):
         self.Nbrane = Nbrane
         
         self.darkCMB_T = 2.7255 * (omega_g[1] / omega_g[0])**0.25
-        
-        self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
+        if self.omega_b[1] != 0.:
+            self.PressureFac = (self.omega_g[1] / self.omega_b[1]) / (self.omega_g[0] / self.omega_b[0])
+        else:
+            self.PressureFac = 0.
+            
         self.ECDM = self.omega_cdm_T
         
         ngamma_pr = 410.7 * (self.darkCMB_T/2.7255)**3.
@@ -597,7 +600,6 @@ class ManyBrane_Universe(object):
         print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
-        #self.eta_0 = 1.4387e4
 
         self.Lmax = lmax
         self.stepsize = stepsize
