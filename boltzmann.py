@@ -766,7 +766,7 @@ class ManyBrane_Universe(object):
             n_b *= self.omega_b[1]/self.omega_b[0]
         hub = self.hubble(aval)
         if dark:
-            if omega_b[1] != 0.:
+            if self.omega_b[1] != 0.:
                 omega_Rat = self.omega_g[1] / self.omega_b[1]
             else:
                 omega_Rat = self.omega_g[0] / self.omega_b[0]
