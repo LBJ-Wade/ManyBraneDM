@@ -43,7 +43,7 @@ class CMB(object):
         self.knum = knum
         self.Ftag = Ftag
         if multiverse:
-            self.f_tag = '_Nbranes_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}'.format(self.Nbrane, self.PressureFac, self.eCDM)
+            self.f_tag = '_Nbranes_{:.0e}_PressFac_{:.2e}_eCDM_{:.2e}'.format(self.Nbrane, self.PressFac, self.eCDM)
         else:
             self.f_tag = ''
         
