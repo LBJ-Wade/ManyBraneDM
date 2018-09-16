@@ -199,7 +199,7 @@ class CMB(object):
         theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
         psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
         vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
-        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 12] + fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
+#        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 12] + fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
 #        pre_2nd_derTerm = (fields[:, 7] + fields[:, 12] + fields[:, 13])*self.visibility(fields[:,0])
 #        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
 
@@ -210,26 +210,26 @@ class CMB(object):
 #            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
 #        DerTerm = interp1d(np.log10(fields[:,0][1:-1]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
-        phi_psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1] - fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         thetaVals = np.zeros(len(ell_tab))
-
+        eta_Full = np.logspace(self.eta_start, self.eta0, 10000)
         for i,ell in enumerate(ell_tab):
-            # Approximate. Dodelson 8.56
+            
 #            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)))*spherical_jn(int(ell), k*(self.eta0 - x)),
 #                        100., self.eta0, limit=50, epsrel=1e-4)[0]
-            # Full. Dodelson 8.54
-
 #            term2 = quad(lambda x:  self.visibility(x)*vb_I(np.log10(x)) * (
 #                           spherical_jn(int(ell - 1.), k*(self.eta0 - x)) -
 #                           (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
 #                           100., self.eta0, limit=50, epsrel=1e-4)[0]
-#
-#            term3 = quad(lambda x:  self.exp_opt_depth(x)*phi_psi_dot(np.log10(x))*
+#            term3 = quad(lambda x:  self.exp_opt_depth(x)*(phi_dot(np.log10(x)) - psi_dot(np.log10(x)))*
 #                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50, epsrel=1e-4)[0]
-                           
-            integ_Value = quad(lambda x: self.visibility(x)*((theta0_I(np.log10(x)) + psi_I(np.log10(x)))*spherical_jn(int(ell), k*(self.eta0 - x)) + vb_I(np.log10(x)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - x)) - (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x)))) + self.exp_opt_depth(x)*phi_psi_dot(np.log10(x))*spherical_jn(int(ell), k*(self.eta0 - x)),
-                self.eta_start, self.eta0, limit=30, epsrel=1e-3)[0]
-            thetaVals[i] = integ_Value #term1 + term2 + term3
+            term1 = np.trapz(self.visibility(eta_Full)*(theta0_I(np.log10(eta_Full)) + psi_I(np.log10(eta_Full)))*spherical_jn(int(ell), k*(self.eta0 - eta_Full)), eta_Full)
+            term2 = np.trapz(self.visibility(eta_Full)*vb_I(np.log10(eta_Full)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - eta_Full)) -
+                            (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - eta_Full))/(k*(self.eta0 - eta_Full))),eta_Full)
+            term3 = np.trapz(self.exp_opt_depth(eta_Full)*(phi_dot(np.log10(eta_Full)) - psi_dot(np.log10(eta_Full)))*
+                            spherical_jn(int(ell), k*(self.eta0 - eta_Full)), eta_Full)
+            thetaVals[i] = term1 + term2 + term3
 
         np.savetxt(filename, thetaVals)
         return
