@@ -213,7 +213,7 @@ class CMB(object):
         phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         thetaVals = np.zeros(len(ell_tab))
-        eta_Full = np.logspace(self.eta_start, self.eta0, 10000)
+        eta_Full = np.logspace(np.log10(self.eta_start), np.log10(self.eta0), 10000)
         for i,ell in enumerate(ell_tab):
             
 #            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)))*spherical_jn(int(ell), k*(self.eta0 - x)),
