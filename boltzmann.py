@@ -10,7 +10,9 @@ from scipy.linalg import lu_solve, lu_factor, inv
 from scipy.integrate import ode, quad, odeint
 from scipy.interpolate import interp1d
 from constants import *
-import time
+#import time
+import warnings
+warnings.filterwarnings("error")
 
 path = os.getcwd()
 
