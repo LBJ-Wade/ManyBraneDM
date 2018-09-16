@@ -393,8 +393,6 @@ class Universe(object):
         dTa = -10.**self.Xe(np.log10(a_val))*(1.-0.245)*2.503e-7*6.65e-29*1e4/a_val**2./3.24078e-25
         CsndB = self.Cs_Sqr(a_val)
         
-        print dTa, CsndB
-        exit()
         
         if self.testing:
             self.aLIST.append(a_val)
