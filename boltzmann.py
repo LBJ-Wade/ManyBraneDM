@@ -70,7 +70,7 @@ class Universe(object):
         
         return
 
-    def compute_funcs(self, preload=False):
+    def compute_funcs(self, preload=True):
         a0_init = np.logspace(-14, 0, 1e4)
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
@@ -85,7 +85,13 @@ class Universe(object):
         self.Thermal_sln()
         # DONT FORGET ABOUT THIS
         if preload:
-            generic_full_files = np.loadtxt('precomputed/explanatory02_thermodynamics.dat')
+            total_loaded = 0
+            while total_loaded < 1:
+                try:
+                    generic_full_files = np.loadtxt('precomputed/explanatory02_thermodynamics.dat')
+                    total_loaded += 1
+                except:
+                    pass
             avals = 1./(1. + generic_full_files[:,0])
             visfunc = generic_full_files[:,5]
             exptau = generic_full_files[:,4]
@@ -131,9 +137,14 @@ class Universe(object):
             np.savetxt(self.Xe_fileNme, self.Xe_dark)
     
         else:
- 
-            self.Tb_drk = np.loadtxt(self.tb_fileNme)
-            self.Xe_dark = np.loadtxt(self.Xe_fileNme)
+            total_loaded = 0
+            while total_loaded < 2:
+                try:
+                    self.Tb_drk = np.loadtxt(self.tb_fileNme)
+                    self.Xe_dark = np.loadtxt(self.Xe_fileNme)
+                    total_loaded += 1
+                except:
+                    pass
         
         self.Tb = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
         self.Xe = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=np.log10(1.1622))
