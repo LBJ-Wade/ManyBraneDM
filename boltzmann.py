@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 from constants import *
 #import time
 import warnings
-warnings.filterwarnings("error", "UserWarning")
+warnings.filterwarnings("default", category=UserWarning)
 
 path = os.getcwd()
 
