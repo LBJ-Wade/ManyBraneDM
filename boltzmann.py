@@ -72,7 +72,7 @@ class Universe(object):
         
         return
 
-    def compute_funcs(self, preload=True):
+    def compute_funcs(self, preload=False):
         a0_init = np.logspace(-14, 0, 1e4)
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
