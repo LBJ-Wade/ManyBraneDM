@@ -222,13 +222,13 @@ class CMB(object):
 #                           spherical_jn(int(ell - 1.), k*(self.eta0 - x)) -
 #                           (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - x))/(k*(self.eta0 - x))),
 #                           100., self.eta0, limit=50, epsrel=1e-4)[0]
-#            term3 = quad(lambda x:  self.exp_opt_depth(x)*(phi_dot(np.log10(x)) - psi_dot(np.log10(x)))*
+#            term3 = quad(lambda x:  -self.exp_opt_depth(x)*(phi_dot(np.log10(x)) - psi_dot(np.log10(x)))*
 #                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50, epsrel=1e-4)[0]
             integ1 = self.visibility(eta_Full)*(theta0_I(np.log10(eta_Full)) + psi_I(np.log10(eta_Full)))* \
                      spherical_jn(int(ell), k*(self.eta0 - eta_Full))
             integ2 = self.visibility(eta_Full)*vb_I(np.log10(eta_Full)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - eta_Full)) - \
                             (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - eta_Full))/(k*(self.eta0 - eta_Full)))
-            integ3 = self.exp_opt_depth(eta_Full)*(phi_dot(np.log10(eta_Full)) - psi_dot(np.log10(eta_Full)))*\
+            integ3 = -self.exp_opt_depth(eta_Full)*(phi_dot(np.log10(eta_Full)) - psi_dot(np.log10(eta_Full)))*\
                             spherical_jn(int(ell), k*(self.eta0 - eta_Full))
             integ1[np.isnan(integ1)] = 0.
             integ2[np.isnan(integ2)] = 0.
