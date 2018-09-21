@@ -140,7 +140,7 @@ class Universe(object):
     
         else:
             total_loaded = 0
-            while total_loaded < 2:
+            while total_loaded < 1:
                 try:
                     self.Tb_drk = np.loadtxt(self.tb_fileNme)
                     self.Xe_dark = np.loadtxt(self.Xe_fileNme)
@@ -677,7 +677,7 @@ class ManyBrane_Universe(object):
 
         return
 
-    def compute_funcs(self):
+    def compute_funcs(self, preload=False):
         a0_init = np.logspace(-14, 0, 1e4)
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
@@ -689,7 +689,27 @@ class ManyBrane_Universe(object):
                                     bounds_error=False, fill_value='extrapolate')
 
         self.Thermal_sln()
-        
+         # DONT FORGET ABOUT THIS
+        if preload:
+            total_loaded = 0
+            while total_loaded < 1:
+                try:
+                    generic_full_files = np.loadtxt('precomputed/explanatory02_thermodynamics.dat')
+                    total_loaded += 1
+                except:
+                    pass
+            avals = 1./(1. + generic_full_files[:,0])
+            visfunc = generic_full_files[:,5]
+            exptau = generic_full_files[:,4]
+            temb = generic_full_files[:,6]
+            
+            csoundb = generic_full_files[:,7]
+            xe = generic_full_files[:,2]
+            self.Cs_Sqr = interp1d(avals, csoundb, kind='linear', bounds_error=False, fill_value='extrapolate')
+            np.savetxt(path + '/precomputed/tb_working' + self.f_tag + '.dat', np.column_stack((avals, temb)))
+            np.savetxt(path + '/precomputed/xe_working' + self.f_tag + '.dat', np.column_stack((avals, xe)))
+            np.savetxt(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat', np.column_stack((avals, visfunc)))
+            np.savetxt(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat', np.column_stack((avals, exptau)))
         return
 
     def clearfiles(self):
@@ -739,10 +759,17 @@ class ManyBrane_Universe(object):
             self.Tb_drk = np.column_stack((avals, val_sln[:,3]))
             np.savetxt(self.tbDk_fileNme, self.Tb_drk)
         else:
-            self.Tb_1 = np.loadtxt(self.tb_fileNme)
-            self.Xe_1 = np.loadtxt(self.Xe_fileNme)
-            self.Tb_drk = np.loadtxt(self.tbDk_fileNme)
-            self.Xe_dark = np.loadtxt(self.Xedk_fileNme)
+            total_loaded = 0
+            while total_loaded < 1:
+                try:
+                    self.Tb_1 = np.loadtxt(self.tb_fileNme)
+                    self.Xe_1 = np.loadtxt(self.Xe_fileNme)
+                    self.Tb_drk = np.loadtxt(self.tbDk_fileNme)
+                    self.Xe_dark = np.loadtxt(self.Xedk_fileNme)
+                    total_loaded += 1
+                except:
+                    pass
+            
         
         self.Tb = interp1d(np.log10(self.Tb_1[:,0]), np.log10(self.Tb_1[:,1]), bounds_error=False, fill_value='extrapolate')
         self.Xe = interp1d(np.log10(self.Xe_1[:,0]), np.log10(self.Xe_1[:,1]), bounds_error=False, fill_value='extrapolate')
