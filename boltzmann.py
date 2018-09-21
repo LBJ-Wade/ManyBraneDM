@@ -677,7 +677,7 @@ class ManyBrane_Universe(object):
 
         return
 
-    def compute_funcs(self, preload=False):
+    def compute_funcs(self, preload=True):
         a0_init = np.logspace(-14, 0, 1e4)
         eta_list = np.zeros_like(a0_init)
         for i in range(len(a0_init)):
@@ -691,6 +691,7 @@ class ManyBrane_Universe(object):
         self.Thermal_sln()
          # DONT FORGET ABOUT THIS
         if preload:
+            self.preload = True
             total_loaded = 0
             while total_loaded < 1:
                 try:
@@ -705,11 +706,13 @@ class ManyBrane_Universe(object):
             
             csoundb = generic_full_files[:,7]
             xe = generic_full_files[:,2]
-            self.Cs_Sqr = interp1d(avals, csoundb, kind='linear', bounds_error=False, fill_value='extrapolate')
+            self.Cs_Sqr_SM = interp1d(avals, csoundb, kind='linear', bounds_error=False, fill_value='extrapolate')
             np.savetxt(path + '/precomputed/tb_working' + self.f_tag + '.dat', np.column_stack((avals, temb)))
             np.savetxt(path + '/precomputed/xe_working' + self.f_tag + '.dat', np.column_stack((avals, xe)))
             np.savetxt(path + '/precomputed/working_VisibilityFunc' + self.f_tag + '.dat', np.column_stack((avals, visfunc)))
             np.savetxt(path + '/precomputed/working_expOpticalDepth' + self.f_tag + '.dat', np.column_stack((avals, exptau)))
+        else:
+            self.preload = False
         return
 
     def clearfiles(self):
@@ -819,6 +822,9 @@ class ManyBrane_Universe(object):
         return (-2.*T[0]*aval + (1./hub)*(8./3.)*(mol_wei/5.11e-4)*omega_Rat*(xe*n_b*thompson_xsec)*(2.7255*(1.+10.**lgz) - T[0])*Mpc_to_cm)*jacF
     
     def Cs_Sqr(self, a, dark=False):
+        if self.preload == True and dark == False:
+            return self.Cs_Sqr_SM(a)
+        
         kb = 8.617e-5/1e9 # GeV/K
         
         if not dark:
