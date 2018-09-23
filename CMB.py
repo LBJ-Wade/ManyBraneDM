@@ -279,7 +279,11 @@ class CMB(object):
         thetaTab = np.loadtxt(self.ThetaFile)
         ell_tab = self.ThetaTabTot[0,:]
         CL_table = np.zeros((len(ell_tab), 2))
-        GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
+        if not self.multiverse:
+            GF = ((self.OM_b+self.OM_c) / self.growthFactor(1.))**2.
+        else:
+            GF = ((self.OM_b+self.OM_c + (self.OM_b2 + self.OM_c2)*self.Nbrane) / self.growthFactor(1.))**2.
+        
         for i,ell in enumerate(ell_tab):
             cL_interp = interp1d(self.kgrid, (thetaTab[1:, i]/self.init_pert), kind='cubic', fill_value=0.)
             CLint = quad(lambda x: (x/self.H_0)**(0.96605-1.)*100.*np.pi/(9.)*cL_interp(x)**2./x, self.kgrid[0], self.kgrid[-1], limit=300)
@@ -301,8 +305,15 @@ class CMB(object):
 
     def growthFactor(self, a):
         # D(a)
-        Uni = Single_FRW(self.OM_b, self.OM_c, self.OM_L, self.OM_g, self.H_0)
-        prefac = 5.*(self.OM_b + self.OM_c)/2. *(Uni.Hubble(a) / self.H_0) * self.H_0**3.
+        if not self.multiverse:
+            Uni = Single_FRW(self.OM_b, self.OM_c, self.OM_L, self.OM_g, self.H_0)
+            prefac = 5.*(self.OM_b + self.OM_c)/2. *(Uni.Hubble(a) / self.H_0) * self.H_0**3.
+        else:
+            omB = self.OM_b + self.OM_b2 * self.Nbrane
+            omC = self.OM_c + self.OM_c2 * self.Nbrane
+            Uni = Single_FRW(omB, omC, self.OM_L, self.OM_g + self.OM_g2 * self.Nbrane, self.H_0)
+            
+            prefac = 5.*(omB + omC)/2. *(Uni.Hubble(a) / self.H_0) * self.H_0**3.
     
         integ_pt = quad(lambda x: 1./(x*Uni.Hubble(x)**3.), 0., a)[0]
         return prefac * integ_pt
