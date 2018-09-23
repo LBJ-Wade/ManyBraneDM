@@ -306,9 +306,8 @@ class Universe(object):
         FailRUN = False
         last_step_up = False
         while (self.eta_vector[-1] < (self.eta_0-1.)):
-            
             if try_count > try_max:
-                #print 'FAIL TRY MAX....Breaking.'
+                print 'FAIL TRY MAX....Breaking.'
                 FailRUN=True
                 break
             y_use = self.y_vector[-1] + self.stepsize
@@ -747,6 +746,9 @@ class ManyBrane_Universe(object):
             val_sln = odeint(self.thermal_funcs, y0, tvals)
             avals = 1. / (1. + 10.**tvals)
             
+            #check sanity
+            val_sln[val_sln < 0.] = 1e-100
+            
             zreion = 12.
             tanhV = .5*(1. + 0.08112)*(1.+np.tanh(((1.+zreion)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreion)*0.5))
             zreionHE = 3.5
@@ -772,12 +774,12 @@ class ManyBrane_Universe(object):
                     total_loaded += 1
                 except:
                     pass
-            
         
         self.Tb = interp1d(np.log10(self.Tb_1[:,0]), np.log10(self.Tb_1[:,1]), bounds_error=False, fill_value='extrapolate')
-        self.Xe = interp1d(np.log10(self.Xe_1[:,0]), np.log10(self.Xe_1[:,1]), bounds_error=False, fill_value='extrapolate')
+        #self.Xe = interp1d(np.log10(self.Xe_1[:,0]), np.log10(self.Xe_1[:,1]), bounds_error=False, fill_value='extrapolate')
+        self.Xe = interp1d(np.log10(self.Xe_1[:,0]), self.Xe_1[:,1], bounds_error=False, fill_value='extrapolate')
         self.Tb_D = interp1d(np.log10(self.Tb_drk[:,0]), np.log10(self.Tb_drk[:,1]), bounds_error=False, fill_value='extrapolate')
-        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), np.log10(self.Xe_dark[:,1]), bounds_error=False, fill_value=0.)
+        self.XE_DARK_B = interp1d(np.log10(self.Xe_dark[:,0]), self.Xe_dark[:,1], bounds_error=False, fill_value=0.)
         return
 
     def Tb_DARK(self, a):
@@ -794,6 +796,14 @@ class ManyBrane_Universe(object):
 
     def thermal_funcs(self, val, z):
         xe, T, xeD, TD = val
+        if xeD < 0.:
+            xeD = 0.
+        if TD < 0.:
+            TD = 0.
+        if xe < 0.:
+            xe = 0.
+        if T < 0.:
+            T = 0.
         return [self.xeDiff([xe], z, T)[0], self.dotT([T], z, xe), self.xeDiff([xeD], z, TD, dark=True)[0], self.dotT([TD], z, xeD, dark=True)]
 
     def dotT(self, T, lgz, xe, dark=False):
@@ -828,11 +838,13 @@ class ManyBrane_Universe(object):
         kb = 8.617e-5/1e9 # GeV/K
         
         if not dark:
-            facxe = 10.**self.Xe(np.log10(a))
+            #facxe = 10.**self.Xe(np.log10(a))
+            facxe = self.Xe(np.log10(a))
             Yp = 0.245
             Tb = 10.**self.Tb(np.log10(a))
         else:
-            facxe = 10.**self.XE_DARK_B(np.log10(a))
+            #facxe = 10.**self.XE_DARK_B(np.log10(a))
+            facxe = self.XE_DARK_B(np.log10(a))
             Yp = self.yp_prime
             Tb = self.Tb_DARK(a)
         
@@ -980,7 +992,7 @@ class ManyBrane_Universe(object):
         last_step_up = False
         while (self.eta_vector[-1] < (self.eta_0-1.)):
             if try_count > try_max:
-                #print 'FAIL TRY MAX....Breaking.'
+                print 'FAIL TRY MAX....Breaking.'
                 FailRUN=True
                 break
             y_use = self.y_vector[-1] + self.stepsize
@@ -1071,10 +1083,12 @@ class ManyBrane_Universe(object):
         
         Yp = 0.245
         n_b = 2.503e-7
-        #dTa = -self.xe_deta(a_val)*(1.-Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
-        dTa = -10.**self.Xe(np.log10(a_val))*(1. - Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
-
-        xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
+        
+        #dTa = -10.**self.Xe(np.log10(a_val))*(1. - Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
+        dTa = -self.Xe(np.log10(a_val))*(1. - Yp)*n_b*6.65e-29*1e4/a_val**2./3.24078e-25
+        
+        #xeDk = 10.**self.XE_DARK_B(np.log10(a_val))
+        xeDk = self.XE_DARK_B(np.log10(a_val))
         dTa_D = -xeDk*(1.-self.yp_prime)*n_b*6.65e-29*1e4/ a_val**2./3.24078e-25*(self.omega_b[1]/self.omega_b[0])
         
         CsndB = self.Cs_Sqr(a_val, dark=False)
