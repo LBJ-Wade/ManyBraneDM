@@ -747,7 +747,7 @@ class ManyBrane_Universe(object):
             avals = 1. / (1. + 10.**tvals)
             
             #check sanity
-            val_sln[val_sln < 0.] = 1e-100
+            val_sln[val_sln < 1e-50] = 1e-50
             
             zreion = 12.
             tanhV = .5*(1. + 0.08112)*(1.+np.tanh(((1.+zreion)**(3./2.) - (1.+10.**tvals)**(3./2.)) / (3./2.)*np.sqrt(1.+zreion)*0.5))
