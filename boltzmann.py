@@ -34,7 +34,7 @@ class Universe(object):
         self.stepsize = stepsize
         
         self.k = k
-        print 'Solving perturbations for k = {:.3e} \n'.format(k)
+        print('Solving perturbations for k = {:.3e} \n'.format(k))
         
         self.accuracy = accuracy
         self.TotalVars = 8 + 3*self.Lmax
@@ -307,7 +307,7 @@ class Universe(object):
         last_step_up = False
         while (self.eta_vector[-1] < (self.eta_0-1.)):
             if try_count > try_max:
-                print 'FAIL TRY MAX....Breaking.'
+                print('FAIL TRY MAX....Breaking.')
                 FailRUN=True
                 break
             y_use = self.y_vector[-1] + self.stepsize
@@ -321,7 +321,7 @@ class Universe(object):
             self.y_vector.append(y_use)
             
             if self.step%3000 == 0:
-                print 'Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1]))
+                print('Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1])))
             if ((y_diff > eta_use*np.exp(y_use)*self.hubble(np.exp(y_use))) or
                 (y_diff > np.max([np.exp(y_use)*self.hubble(np.exp(y_use)),
                                   np.exp(y_use)*self.hubble(np.exp(y_use))/self.k]))):
@@ -353,7 +353,7 @@ class Universe(object):
             try_count = 0.
             
         if not FailRUN:
-            print 'Saving File...'
+            print('Saving File...')
             self.save_system()
         return
 
@@ -439,8 +439,8 @@ class Universe(object):
             Jma[4,3] += self.k * CsndB / (HUB * a_val)
             Jma[4,8] += -3.*dTa / (Rfac * HUB * a_val)
         else:
-            print 'Use TCA?'
-            exit()
+            print('Use TCA?')
+            raise ValueError
             Jma[4,4] += -1./(1.+RR) + 2.*(RR/(1.+RR))**2. + 2.*RR*HUB*a_val/\
                         ((1.+RR)**2.*dTa)
             Jma[4,3] += CsndB*self.k/(HUB*a_val*(1.+RR))
@@ -615,7 +615,7 @@ class ManyBrane_Universe(object):
         
         self.yp_prime = Yp_Prime(etaPr)
         
-        print 'Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0])
+        print('Fraction of baryons on each brane: {:.3f}'.format(omega_b[1]/omega_b[0]))
         
         self.H_0 = 2.2348e-4 # units Mpc^-1
 
@@ -623,7 +623,7 @@ class ManyBrane_Universe(object):
         self.stepsize = stepsize
         
         self.k = k
-        print 'Solving perturbations for k = {:.3e} \n'.format(k)
+        print('Solving perturbations for k = {:.3e} \n'.format(k))
         
         self.accuracy = accuracy
         self.TotalVars = 8 + 3*self.Lmax
@@ -992,7 +992,7 @@ class ManyBrane_Universe(object):
         last_step_up = False
         while (self.eta_vector[-1] < (self.eta_0-1.)):
             if try_count > try_max:
-                print 'FAIL TRY MAX....Breaking.'
+                print('FAIL TRY MAX....Breaking.')
                 FailRUN=True
                 break
             y_use = self.y_vector[-1] + self.stepsize
@@ -1006,7 +1006,7 @@ class ManyBrane_Universe(object):
             self.y_vector.append(y_use)
             
             if self.step%3000 == 0:
-                print 'Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1]))
+                print('Last a: {:.7e}, New a: {:.7e}'.format(np.exp(self.y_vector[-2]), np.exp(self.y_vector[-1])))
             if ((y_diff > eta_use*np.exp(y_use)*self.hubble(np.exp(y_use))) or
                 (y_diff > np.max([np.exp(y_use)*self.hubble(np.exp(y_use)),
                                   np.exp(y_use)*self.hubble(np.exp(y_use))/self.k]))):
@@ -1033,7 +1033,7 @@ class ManyBrane_Universe(object):
             try_count = 0.
         
         if not FailRUN:
-            print 'Saving File...'
+            print('Saving File...')
             self.save_system()
         return
 

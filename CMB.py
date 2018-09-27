@@ -6,11 +6,11 @@ from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.special import spherical_jn
 from scipy.optimize import minimize
+#from scipy.signal import savgol_filter
 from multiprocessing import Pool
 import glob
 import math
 path = os.getcwd()
-
 
 class CMB(object):
 
@@ -56,7 +56,8 @@ class CMB(object):
         self.multiverse = multiverse
         self.init_pert = -1/6.
         
-        ell_val = range(self.lmin, self.lmax, 10)
+#        ell_val = range(self.lmin, self.lmax, 10)
+        ell_val = np.logspace(np.log10(self.lmin), np.log10(self.lmax), 120)
         self.clearfiles()
         
         self.ThetaFile = path + '/OutputFiles/' + self.Ftag
@@ -174,6 +175,7 @@ class CMB(object):
         print 'All k values computed!'
         return
 
+
     def theta_integration(self, k, kVAL=None):
         filename = path + '/OutputFiles/' + self.Ftag + '_ThetaFile_kval_{:.4e}'.format(k)
         if self.multiverse:
@@ -195,10 +197,11 @@ class CMB(object):
             fileNme += '.dat'
         fields = np.loadtxt(fileNme)
 
-        theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
-        theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
-        psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
-        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+#        theta0_I = interp1d(np.log10(fields[:,0]), fields[:, 6], kind='cubic', bounds_error=False, fill_value=0.)
+#        theta1_I = interp1d(np.log10(fields[:,0]), fields[:, 9], kind='cubic', bounds_error=False, fill_value=0.)
+#        psi_I = interp1d(np.log10(fields[:,0]), fields[:, -1], kind='cubic', bounds_error=False, fill_value=0.)
+#        vb_I = interp1d(np.log10(fields[:,0]), fields[:, 5], kind='cubic', bounds_error=False, fill_value=0.)
+
 #        PiPolar = interp1d(np.log10(fields[:,0]), fields[:, 7] + fields[:, 12] + fields[:, 13], kind='cubic', bounds_error=False, fill_value=0.)
 #        pre_2nd_derTerm = (fields[:, 7] + fields[:, 12] + fields[:, 13])*self.visibility(fields[:,0])
 #        sec_DerTerm = np.zeros(len(pre_2nd_derTerm) - 2)
@@ -210,10 +213,20 @@ class CMB(object):
 #            sec_DerTerm[i] = 2.*(h2*pre_2nd_derTerm[i+2] - (h1+h2)*pre_2nd_derTerm[i+1] + h1*pre_2nd_derTerm[i])/(h1*h2*(h1+h2))
 #        DerTerm = interp1d(np.log10(fields[:,0][1:-1]), sec_DerTerm, kind='cubic', bounds_error=False, fill_value=0.)
 
-        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
-        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+#        phi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, 1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
+#        psi_dot = interp1d(np.log10(fields[1:,0]), np.diff(fields[:, -1])/np.diff(fields[:,0]), kind='cubic', bounds_error=False, fill_value=0.)
         thetaVals = np.zeros(len(ell_tab))
-        eta_Full = np.logspace(np.log10(self.eta_start), np.log10(self.eta0), 10000)
+#        eta_Full = np.logspace(np.log10(self.eta_start), np.log10(self.eta0), 7000)
+
+        indx_min = 1150
+        vis = self.visibility(fields[indx_min:, 0])
+        
+        tpsi0 = fields[indx_min:, 6] + fields[indx_min:, -1] # theta0_I(np.log10(eta_Full)) + psi_I(np.log10(eta_Full))
+        vb0 = fields[indx_min:, 5] # vb_I(np.log10(eta_Full))
+        expD0 = self.exp_opt_depth(fields[indx_min:, 0])
+        ppdot0 = np.diff(fields[indx_min-1:, 1]) - np.diff(fields[indx_min-1:, -1]) #phi_dot(np.log10(fields[:, 0])) - psi_dot(np.log10(fields[:, 0]))
+#        ppdot0 = np.insert(ppdot0, 0, 0.)
+
         for i,ell in enumerate(ell_tab):
             
 #            term1 = quad(lambda x: self.visibility(x)*(theta0_I(np.log10(x)) + psi_I(np.log10(x)))*spherical_jn(int(ell), k*(self.eta0 - x)),
@@ -224,24 +237,25 @@ class CMB(object):
 #                           100., self.eta0, limit=50, epsrel=1e-4)[0]
 #            term3 = quad(lambda x:  -self.exp_opt_depth(x)*(phi_dot(np.log10(x)) - psi_dot(np.log10(x)))*
 #                           spherical_jn(int(ell), k*(self.eta0 - x)), self.eta_start, self.eta0, limit=50, epsrel=1e-4)[0]
-            integ1 = self.visibility(eta_Full)*(theta0_I(np.log10(eta_Full)) + psi_I(np.log10(eta_Full)))* \
-                     spherical_jn(int(ell), k*(self.eta0 - eta_Full))
-            integ2 = self.visibility(eta_Full)*vb_I(np.log10(eta_Full)) * (spherical_jn(int(ell - 1.), k*(self.eta0 - eta_Full)) - \
-                            (ell+1.)*spherical_jn(int(ell), k*(self.eta0 - eta_Full))/(k*(self.eta0 - eta_Full)))
-            integ3 = -self.exp_opt_depth(eta_Full)*(phi_dot(np.log10(eta_Full)) - psi_dot(np.log10(eta_Full)))*\
-                            spherical_jn(int(ell), k*(self.eta0 - eta_Full))
+            integ1 = vis * tpsi0 * spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))
+            integ2 = vis * vb0 * (spherical_jn(int(ell - 1.), k * (self.eta0 - fields[indx_min:, 0])) - \
+                    (ell+1.)*spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))/(k * (self.eta0 - fields[indx_min:, 0])))
+            integ3 = -expD0 * ppdot0 * spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))
             integ1[np.isnan(integ1)] = 0.
             integ2[np.isnan(integ2)] = 0.
             integ3[np.isnan(integ3)] = 0.
 
-            term1 = np.trapz(integ1, eta_Full)
-            term2 = np.trapz(integ2,eta_Full)
-            term3 = np.trapz(integ3, eta_Full)
+            term1 = np.trapz(integ1, fields[indx_min:, 0])
+            term2 = np.trapz(integ2, fields[indx_min:, 0])
+            term3 = np.trapz(integ3, fields[indx_min:, 0])
             thetaVals[i] = term1 + term2 + term3
-
+    
+#        print 'Saving...', thetaVals[-1]
         np.savetxt(filename, thetaVals)
         return
-    
+        
+#    def attempt1(self, ell_table, eta_tab, vis, theta0, psiI, )
+
     def SaveThetaFile(self, test=False):
         
         kgrid = np.logspace(np.log10(self.kmin), np.log10(self.kmax), self.knum)
