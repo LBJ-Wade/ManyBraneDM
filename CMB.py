@@ -6,6 +6,7 @@ from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from scipy.special import spherical_jn
 from scipy.optimize import minimize
+from statsmodels.nonparametric.smoothers_lowess import lowess
 #from scipy.signal import savgol_filter
 from multiprocessing import Pool
 import glob
@@ -218,14 +219,19 @@ class CMB(object):
         thetaVals = np.zeros(len(ell_tab))
 #        eta_Full = np.logspace(np.log10(self.eta_start), np.log10(self.eta0), 7000)
 
-        indx_min = 1150
+        indx_min = 0
         vis = self.visibility(fields[indx_min:, 0])
         
         tpsi0 = fields[indx_min:, 6] + fields[indx_min:, -1] # theta0_I(np.log10(eta_Full)) + psi_I(np.log10(eta_Full))
         vb0 = fields[indx_min:, 5] # vb_I(np.log10(eta_Full))
         expD0 = self.exp_opt_depth(fields[indx_min:, 0])
-        ppdot0 = np.diff(fields[indx_min-1:, 1]) - np.diff(fields[indx_min-1:, -1]) #phi_dot(np.log10(fields[:, 0])) - psi_dot(np.log10(fields[:, 0]))
-#        ppdot0 = np.insert(ppdot0, 0, 0.)
+        
+        ppdot0 = (np.diff(fields[indx_min-1:, 1]) - np.diff(fields[indx_min-1:, -1])) / np.diff(fields[indx_min-1:, 0])
+        ppdot0 = np.insert(ppdot0, 0, 0.)
+        
+        s_filter = 0.01
+        smthed_ppdot0 = lowess(fields[indx_min:, 0], ppdot0, frac=s_filter, return_sorted=True)
+        
 
         for i,ell in enumerate(ell_tab):
             
@@ -240,7 +246,7 @@ class CMB(object):
             integ1 = vis * tpsi0 * spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))
             integ2 = vis * vb0 * (spherical_jn(int(ell - 1.), k * (self.eta0 - fields[indx_min:, 0])) - \
                     (ell+1.)*spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))/(k * (self.eta0 - fields[indx_min:, 0])))
-            integ3 = -expD0 * ppdot0 * spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))
+            integ3 = -expD0 * smthed_ppdot0[:,1] * spherical_jn(int(ell), k * (self.eta0 - fields[indx_min:, 0]))
             integ1[np.isnan(integ1)] = 0.
             integ2[np.isnan(integ2)] = 0.
             integ3[np.isnan(integ3)] = 0.
@@ -250,7 +256,6 @@ class CMB(object):
             term3 = np.trapz(integ3, fields[indx_min:, 0])
             thetaVals[i] = term1 + term2 + term3
     
-#        print 'Saving...', thetaVals[-1]
         np.savetxt(filename, thetaVals)
         return
         
