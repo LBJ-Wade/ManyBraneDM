@@ -994,7 +994,8 @@ class ManyBrane_Universe(object):
             if try_count > try_max:
                 print('FAIL TRY MAX....Breaking.')
                 FailRUN=True
-                break
+                if self.stepsize > 1e-4:
+                    break
             y_use = self.y_vector[-1] + self.stepsize
             eta_use = self.conform_T(np.exp(y_use))
             if (eta_use > self.eta_0):
